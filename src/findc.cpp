@@ -55,7 +55,7 @@ namespace vision_rescue
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
         gray_clone=clone_mat.clone();cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
-        HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 50, range_radius_small, range_radius_big);
+        HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 60, range_radius_small, range_radius_big);
         for (size_t i = 0; i < circles.size(); i++)
         {
             c = circles[i];
@@ -91,7 +91,7 @@ namespace vision_rescue
         in_cup_mat = clone_mat(Range(c[1] - radius, c[1] + radius), Range(c[0] - radius, c[0] + radius));
         cv::resize(in_cup_mat, in_cup_mat, cv::Size(300, 300), 0, 0, cv::INTER_CUBIC);
         cvtColor(in_cup_mat, in_cup_gray, cv::COLOR_BGR2GRAY);
-        threshold(in_cup_gray, in_cup_binary, 50, 255, cv::THRESH_BINARY);
+        threshold(in_cup_gray, in_cup_binary, 70, 255, cv::THRESH_BINARY);
         in_cup_binary=~in_cup_binary;
         find_ok=check_black(in_cup_binary);
 
@@ -162,11 +162,6 @@ namespace vision_rescue
         }
 
        
-    }
-
-    void Findc::detect_expand_way()
-    {
-        
     }
 
     void Findc::detect_way()
@@ -256,9 +251,8 @@ namespace vision_rescue
 
         int averageAngle_calc=0;
         
-        if(averageAngle2>0&&averageAngle<0) averageAngle_calc=(90+averageAngle2+averageAngle);
-        else averageAngle_calc=(90-averageAngle2)+averageAngle;
-
+        averageAngle_calc=(90-averageAngle2)+averageAngle;
+        if(averageAngle_calc>180)averageAngle_calc-=360;
         int averageAngle_i=(averageAngle_calc+22.5*((averageAngle_calc>0)?1:-1))/45.0;
         cout<<averageAngle_i<<endl;
         switch(averageAngle_i)
@@ -369,8 +363,8 @@ namespace vision_rescue
             }
         }
     }
-
-    int Findc::calc_slope(Point a, Point b)
+/*
+int Findc::calc_slope(Point a, Point b)
 {
 
     double x_distance=a.x-b.x;
@@ -491,6 +485,7 @@ int Findc::calc_length(Point a, Point b)
             }
         }
     }
+    */
 
 }
 
