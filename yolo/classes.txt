@@ -1,0 +1,15 @@
+1.1-explosives
+1.5-blasting-agents
+2-flammable-gas
+2-non-flammable-gas
+2-oxygen
+3-fuel-oil
+4-dangerous-when-wet
+4-flammable-solid
+4-spontaneously-combustible
+5.1-oxidizer
+5.2-organic-peroxide
+6-inhalation-hazard
+6-poison
+7-radioactive
+8-corrosive
