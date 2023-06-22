@@ -77,7 +77,7 @@ namespace vision_rescue
         void duplication_point();
         void choose_circle(Point center, int radius);
         void detect_way();
-        void detect_expand_way();
+        void remove_text();
 
         int calc_length(Point a, Point b);
         int calc_slope(Point a, Point b);

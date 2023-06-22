@@ -164,6 +164,11 @@ namespace vision_rescue
        
     }
 
+    void Findc::remove_text()
+    {
+
+    }
+
     void Findc::detect_way()
     {
         last_binary=in_cup_binary.clone();
@@ -363,7 +368,7 @@ namespace vision_rescue
             }
         }
     }
-/*
+
 int Findc::calc_slope(Point a, Point b)
 {
 
@@ -485,7 +490,7 @@ int Findc::calc_length(Point a, Point b)
             }
         }
     }
-    */
+    
 
 }
 
