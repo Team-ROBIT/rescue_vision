@@ -18,7 +18,6 @@ std_msgs
 roslib
 sensor_msgs
 image_transport
-msg_generate
 )
 find_package(OpenCV 4.5.2 REQUIRED)
 
