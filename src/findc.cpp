@@ -254,7 +254,9 @@ namespace vision_rescue
         //double averageAngle = std::fmod(-(sumAngles / count) + 360.0, 360.0);
         cout<<averageAngle<<endl;
 
-        int averageAngle_calc=(90-averageAngle2)+averageAngle;
+        int averageAngle=0;
+        if(averageAngle2>0&&averageAngle)
+        averageAngle_calc=(90-averageAngle2)+averageAngle;
         int averageAngle_i=(averageAngle_calc+22.5*((averageAngle_calc>0)?1:-1))/45.0;
         cout<<averageAngle_i<<endl;
         switch(averageAngle_i)
