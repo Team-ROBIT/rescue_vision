@@ -62,25 +62,20 @@ namespace vision_rescue
         vector<Vec4i> lines;
 
         int radius;
-        int range_radius_small = 0; // 50
+        int range_radius_small = 10; // 50
         int range_radius_big = 120;
         int distance;
         
         bool check_black(const Mat & binary_mat);
-        void find_line();
         void find_contour();
         void random_image_save(const Mat &input_img, const char *format);
         void catch_c(Point center, int radius);
         void run();
         void update();
         void all_clear();
-        void duplication_point();
         void choose_circle(Point center, int radius);
         void detect_way();
         void remove_text();
-
-        int calc_length(Point a, Point b);
-        int calc_slope(Point a, Point b);
 
         double slope;
         double radians;

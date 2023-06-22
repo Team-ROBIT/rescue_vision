@@ -55,7 +55,7 @@ namespace vision_rescue
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
         gray_clone=clone_mat.clone();cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
-        HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 60, range_radius_small, range_radius_big);
+        HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 50, range_radius_small, range_radius_big); //100->50
         for (size_t i = 0; i < circles.size(); i++)
         {
             c = circles[i];
@@ -138,29 +138,7 @@ namespace vision_rescue
             range_radius_big--;
         }
 
-
-        //goodFeaturesToTrack(in_cup_gray, corners, 10, 0.01, 10, Mat(), 10, false, 0.04);
-        //goodFeaturesToTrack(in_cup_binary, corners2, 10, 0.01, 10, Mat(), 10, false, 0.04);
         find_contour();
-        //find_line();
-
-        /*for (const auto &corner : corners)//꼭짓점
-        {
-            circle(in_cup_mat, corner, 5, Scalar(0, 255, 255), -1);
-        }*/
-
-        if((corners.size()>0)&&(corners2.size()>0)){
-        //duplication_point();
-        for (const auto &corner : real_corners)//꼭짓점
-        {
-            circle(ok_cup_mat, corner, 5, Scalar(255,255, 0), 1, -1);
-        }
-        for (const auto &corner : corners2)//꼭짓점
-        {
-            circle(ok_cup_mat, corner, 5, Scalar(255,0, 255), 1, -1);
-        }
-        }
-
        
     }
 
@@ -213,7 +191,7 @@ namespace vision_rescue
 
         //-------------------------------------------------------big----------------------------------------------------
 
-        range_radius_small=0;
+        range_radius_small=10;
         range_radius_big=120;
 
         double sumAngles = 0.0;
@@ -369,100 +347,7 @@ namespace vision_rescue
         }
     }
 
-int Findc::calc_slope(Point a, Point b)
-{
-
-    double x_distance=a.x-b.x;
-    double y_distance=a.y-b.y;
-    slope=y_distance/x_distance;
-    double left_corner_min=400;
-    double right_corner_min=400;
-    Point left;
-    Point right;
-
-    if(a.x>=b.x)
-    {
-        left=b;
-        right=a;
-    }
-    else {right=b;left=a;}
-
-    for(int i=0; i<corners.size(); i++)
-    {
-        double left_dis=sqrt(std::pow(corners[i].x - left.x, 2) + std::pow(corners[i].y - left.y, 2));
-        if(left_dis<left_corner_min)
-        {
-            left_corner_min=left_dis;
-            temp_corner_left=corners[i].y;
-        }
-    }
-    for(int i=0; i<corners.size(); i++)
-    {
-        double right_dis=sqrt(std::pow(corners[i].x - right.x, 2) + std::pow(corners[i].y - right.y, 2));
-        if(right_dis<right_corner_min)
-        {
-            right_corner_min=right_dis;
-            temp_corner_right=corners[i].y;
-        }
-    }
-
-    int pos;
-
-    if(left_corner_min>=right_corner_min){
-        if(temp_corner_right<150) pos=1;
-        else pos=4;
-    }
-    else {
-        if(temp_corner_left<150) pos=2;
-        else pos=3;
-    }
-
-    slope=abs(slope);
-    radians = atan(slope);
-
-    switch (pos) {
-
-    case 1:
-        degrees = radians*(180/M_PI);break;
-    case 2:
-        degrees = 180-radians*(180/M_PI);break;
-    case 3:
-        degrees = -(180-radians*(180/M_PI));break;
-    case 4:
-        degrees = -radians*(180/M_PI);break;
-    default:
-        break;
-    }
-}
-
-int Findc::calc_length(Point a, Point b)
-{
-    distance=sqrt(pow(a.x-b.x, 2)+pow(a.y-b.y, 2));
-    return distance;
-}
-
- void Findc::duplication_point()
-    {
-        cout<<"in"<<endl;
-        int a=0;
-        for(int i=0; i<corners.size(); i++)
-        {
-            for(int j=0; j<corners2.size(); j++)
-            {
-                int corner_dis=calc_length(corners[i], corners2[j]);
-                if(corner_dis<10){
-                    real_corners[a]=corners[i];
-                    a++;   
-                    cout<<"check"<<endl;
-                }       
-
-                cout<<"mid"<<endl;
-            }
-        }
-        cout<<"out"<<endl;
-    }
-
-        void Findc::find_contour()
+    void Findc::find_contour()
     {
         findContours(in_cup_binary, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
         threshold(in_cup_binary, contour_lane, 100, 255, THRESH_MASK);
@@ -473,24 +358,6 @@ int Findc::calc_length(Point a, Point b)
             drawContours(contour_lane, contours, i, Scalar::all(255), 1);
         }
     }
-
-    void Findc::find_line()
-    {
-        HoughLinesP(in_cup_canny, lines, 1, CV_PI / 180, 40, 160, 60); // 40 160 60 in_cup_mat
-        for (size_t i = 0; i < lines.size(); i++)
-        {
-            Vec4i l = lines[i];
-            double line_length = calc_length(Point(l[0], l[1]), Point(l[2], l[3]));
-            if (line_length > 230) //230
-            {
-                line(in_cup_mat, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255, 0, 0), 2, 8);
-                circle(in_cup_mat, Point(l[0], l[1]), 5, Scalar(255, 255, 0), 6);
-                circle(in_cup_mat, Point(l[2], l[3]), 5, Scalar(255, 0, 255), 6);
-                calc_slope(Point(l[0], l[1]), Point(l[2], l[3]));
-            }
-        }
-    }
-    
 
 }
 
