@@ -52,6 +52,7 @@ namespace vision_rescue
         Mat expand_cup_gray2;
         Mat expand_cup_binary2;
         Mat last_binary;
+        Mat temp_binary;
 
         Vec3i c;
         vector<Vec3f> circles; //(중심좌표x, 중심좌표y, 반지름r)

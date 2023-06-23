@@ -57,21 +57,29 @@ namespace vision_rescue
         gray_clone = clone_mat.clone();
         cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
         threshold(gray_clone, clone_binary, 80, 255, cv::THRESH_BINARY);
-        HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 10, range_radius_small, range_radius_big); // 100->50
+        threshold(gray_clone, temp_binary, 200, 255, cv::THRESH_BINARY);
+        HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 50, range_radius_small, range_radius_big); // 100->50
         for (size_t i = 0; i < circles.size(); i++)
         {
             c = circles[i];
             Point center(c[0], c[1]);
             radius = c[2];
 
+            // circle(clone_mat, center, radius, Scalar(0, 255, 0), 2); // 하나의 원
+            // circle(clone_mat, center, 1, Scalar(255, 0, 0), 3);
+
             // 작은 원 반지름 : 큰 원 반지름 -> 1.2 : 2.8 -> 2.8 / 1.2 = 2.3
-            if (!(((c[1] - 5.3 * radius) < 0) || ((c[1] + 5.3 * radius) > 360) || ((c[0] - 5.3 * radius) < 0) || ((c[0] + 5.3 * radius) > 640)))
+            if (!(((c[1] - 2.3 * radius) < 0) || ((c[1] + 2.3 * radius) > 360) || ((c[0] - 2.3 * radius) < 0) || ((c[0] + 2.3 * radius) > 640)))
             { // 300, 400
                 choose_circle(center, radius);
                 if (find_ok == true)
                     catch_c(center, radius);
                 circle(clone_mat, center, radius, Scalar(0, 255, 0), 2); // 하나의 원
                 circle(clone_mat, center, 1, Scalar(255, 0, 0), 3);
+            }
+            else
+            {
+                // range_radius_big -= 10;
             }
         }
 
@@ -111,6 +119,7 @@ namespace vision_rescue
         threshold(expand_cup_gray, expand_cup_binary, 80, 255, cv::THRESH_BINARY);
         expand_cup_binary = ~expand_cup_binary;
 
+        /*
         int big_radius2 = 5.3 * radius;
 
         expand_cup_mat2 = clone_mat(Range(c[1] - big_radius2, c[1] + big_radius2), Range(c[0] - big_radius2, c[0] + big_radius2));
@@ -118,14 +127,16 @@ namespace vision_rescue
         cvtColor(expand_cup_mat2, expand_cup_gray2, cv::COLOR_BGR2GRAY);
         threshold(expand_cup_gray2, expand_cup_binary2, 70, 255, cv::THRESH_BINARY);
         expand_cup_binary2 = ~expand_cup_binary2;
+        */
 
         //
         first_ring = check_black(expand_cup_binary);
-        second_ring = check_black(expand_cup_binary2);
+        // second_ring = check_black(expand_cup_binary2);
 
         ok_cup_mat = in_cup_mat.clone();
         // Canny(in_cup_gray, in_cup_canny, 400, 50);
 
+        /*
         if (second_ring == true)
         {
             // 세번째 원이다
@@ -140,6 +151,18 @@ namespace vision_rescue
         else
         {
             // 가장 큰 원이다
+            range_radius_big--;
+        }
+        */
+
+        if (first_ring == true)
+        {
+            // 두번째 원이다
+            cout << "check!" << endl;
+            detect_way();
+        }
+        else
+        {
             range_radius_big--;
         }
 
@@ -352,9 +375,9 @@ namespace vision_rescue
                 img_tr.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_mat).toImageMsg());
                 img_cup.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, ok_cup_mat).toImageMsg());
                 // img_cup_expand.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, expand_cup_mat2).toImageMsg());
-                img_cup_binary.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, last_binary).toImageMsg());
+                img_cup_binary.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, temp_binary).toImageMsg());
                 img_expand_binary.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, expand_cup_binary).toImageMsg());
-                img_expand_binary2.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, expand_cup_binary2).toImageMsg());
+                // img_expand_binary2.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, expand_cup_binary2).toImageMsg());
             }
         }
     }
