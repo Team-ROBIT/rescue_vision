@@ -107,13 +107,8 @@ namespace vision_rescue
         expand_cup_mat = clone_mat(Range(c[1] - big_radius, c[1] + big_radius), Range(c[0] - big_radius, c[0] + big_radius));
         cv::resize(expand_cup_mat, expand_cup_mat, cv::Size(300, 300), 0, 0, cv::INTER_CUBIC);
         cvtColor(expand_cup_mat, expand_cup_gray, cv::COLOR_BGR2GRAY);
-<<<<<<< Updated upstream
         threshold(expand_cup_gray, expand_cup_binary, 80, 255, cv::THRESH_BINARY);
         expand_cup_binary = ~expand_cup_binary;
-=======
-        threshold(expand_cup_gray, expand_cup_binary, 70, 255, cv::THRESH_BINARY);
-        expand_cup_binary=~expand_cup_binary;
->>>>>>> Stashed changes
 
         int big_radius2 = 5.3 * radius;
 
@@ -332,14 +327,8 @@ namespace vision_rescue
         img_tr = n.advertise<sensor_msgs::Image>("img_tr", 100);
         img_cup = n.advertise<sensor_msgs::Image>("img_cup", 100);
         img_cup_binary = n.advertise<sensor_msgs::Image>("img_cup_binary", 100);
-<<<<<<< Updated upstream
         img_expand_binary = n.advertise<sensor_msgs::Image>("img_expand_binary", 100);
         img_expand_binary2 = n.advertise<sensor_msgs::Image>("img_expand_binary2", 100);
-=======
-        img_cup_expand = n.advertise<sensor_msgs::Image>("img_cup_expand", 100);
-        img_expand_binary= n.advertise<sensor_msgs::Image>("img_expand_binary", 100);
-        img_expand_binary2= n.advertise<sensor_msgs::Image>("img_expand_binary2", 100);
->>>>>>> Stashed changes
         image_transport::ImageTransport img(n);
         n.getParam("/findc/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
@@ -381,7 +370,6 @@ namespace vision_rescue
         }
     }
 
-<<<<<<< Updated upstream
     void Findc::find_contour()
     {
         int x = c[0] - 5 * radius;
@@ -397,10 +385,8 @@ namespace vision_rescue
             drawContours(contour_lane, contours, i, Scalar::all(255), 1);
         }
     }
-
+}
     /*
-=======
->>>>>>> Stashed changes
     void Findc::find_contour()
     {
         findContours(expand_cup_binary2, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
@@ -414,3 +400,4 @@ namespace vision_rescue
     }
 
 }
+*/
