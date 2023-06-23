@@ -121,7 +121,7 @@ namespace vision_rescue
                 update();
                 img_ad.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, Image_to_Binary_adaptive).toImageMsg());
                 img_divide.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, Captured_Image_RGB).toImageMsg());
-                // img_thermal_vt.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_thermal_mat).toImageMsg());
+                //  img_thermal_vt.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_thermal_mat).toImageMsg());
             }
         }
     }
@@ -160,7 +160,6 @@ namespace vision_rescue
         // clone_thermal_mat = original_thermal->clone();
         // cv::resize(clone_mat, clone_mat, cv::Size(480, 360), 0, 0, cv::INTER_CUBIC);
 
-        frame = clone_mat.clone();
         Image_to_Binary_OTSU = clone_mat.clone();
         GaussianBlur(Image_to_Binary_OTSU, Image_to_Binary_OTSU, Size(15, 15), 2.0);
         cvtColor(Image_to_Binary_OTSU, Image_to_Binary_OTSU, CV_RGB2GRAY);
@@ -246,6 +245,8 @@ namespace vision_rescue
         cout << endl
              << "Rotation Direction Image: " << save_image_position__Rotation_Direction[0] << ", " << save_image_position__Rotation_Direction[1] << endl
              << endl;
+
+        cout << "sort_ok" << endl;
 
         //------------------------------------------------hazmat----------------------------------------------
 
@@ -346,6 +347,7 @@ namespace vision_rescue
     void Victimboard::set_yolo()
     {
         auto output_names = net.getUnconnectedOutLayersNames();
+        frame = clone_mat.clone();
         std::vector<cv::Mat> detections;
 
         auto total_start = std::chrono::steady_clock::now();
@@ -426,21 +428,25 @@ namespace vision_rescue
                 // Draw the box only if it is not overlapping with a smaller box
                 if (!isOverlapping)
                 {
-
+                    cout << "enter_overlapping" << endl;
                     hazmat_loc.emplace_back(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
                     cv::rectangle(Captured_Image_RGB, cv::Point(rect.x, rect.y), cv::Point(rect.x + rect.width, rect.y + rect.height), color, 3);
+                    cout << "draw_rect" << endl;
 
+                    /*
                     std::ostringstream label_ss;
                     label_ss << class_names[c] << ": " << std::fixed << std::setprecision(2) << scores[c][idx];
                     auto label = label_ss.str();
-
                     int baseline;
                     auto label_bg_sz = cv::getTextSize(label.c_str(), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
                     cv::rectangle(Captured_Image_RGB, cv::Point(rect.x, rect.y - label_bg_sz.height - baseline - 10), cv::Point(rect.x + label_bg_sz.width, rect.y), color, cv::FILLED);
                     cv::putText(Captured_Image_RGB, label.c_str(), cv::Point(rect.x, rect.y - baseline - 5), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0));
+                    */
                 }
             }
         }
+
+        cout << "third_for" << endl;
 
         auto total_end = std::chrono::steady_clock::now();
 
