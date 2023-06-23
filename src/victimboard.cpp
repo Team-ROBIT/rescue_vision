@@ -61,8 +61,8 @@ namespace vision_rescue
         ros::NodeHandle n;
         image_transport::ImageTransport img(n);
         img_ad = n.advertise<sensor_msgs::Image>("img_ad", 100);
-        //n.getParam("/qr_detect/camera", param);
-        //ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
+        n.getParam("/victimboard/camera", param);
+        ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
         img_sub = img.subscribe(param, 100, &Victimboard::imageCallBack, this); /// camera/color/image_raw
         // Add your ros communications here.
         return true;

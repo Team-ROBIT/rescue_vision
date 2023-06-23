@@ -36,6 +36,11 @@
             <param name="camera" type="string" value="$(arg camera)"/>
         </node>    
     </group>
+    <group if="$(eval type=='victim')">
+        <node pkg="rescue_vision" type="victimboard" name="victimboard" output="screen">
+            <param name="camera" type="string" value="$(arg camera)"/>
+        </node>    
+    </group>
     </group>
 
     <group if="$(eval camera_type=='usb')" >
@@ -66,7 +71,11 @@
         
         
         </group>
-    
+    <group if="$(eval type=='victim')">
+        <node pkg="rescue_vision" type="victimboard" name="victimboard" output="screen">
+            <param name="camera" type="string" value="$(arg camera)"/>
+        </node>    
+    </group>
     </group>
 
 
