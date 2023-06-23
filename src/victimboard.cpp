@@ -214,6 +214,10 @@ namespace vision_rescue
                 save_image_position__Rotation_Direction[1] = 6;
             else if (save_image_position__Rotation_Direction[0] == 3)
                 save_image_position__Rotation_Direction[1] = 4;
+            else if (save_image_position__Rotation_Direction[0] == 4)
+                save_image_position__Rotation_Direction[1] = 3;
+            else if (save_image_position__Rotation_Direction[0] == 6)
+                save_image_position__Rotation_Direction[1] = 1;
         }
         // if [0][0][0].... retry
         else if (count_KeyPoints[0] == count_KeyPoints[1])
@@ -254,19 +258,19 @@ namespace vision_rescue
 
             if (check == 1 && (divided_Image_data[7].position.contains(cv::Point(point.x, point.y))))
             {
-                cout << "left up -> right down" << endl;
+                // cout << "left up -> right down" << endl;
             }
             else if (check == 2 && (divided_Image_data[5].position.contains(cv::Point(point.x, point.y))))
             {
-                cout << "right up -> left down" << endl;
+                // cout << "right up -> left down" << endl;
             }
             else if (check == 3 && (divided_Image_data[2].position.contains(cv::Point(point.x, point.y))))
             {
-                cout << "right up -> left down" << endl;
+                // cout << "right up -> left down" << endl;
             }
             else if (check == 4 && (divided_Image_data[0].position.contains(cv::Point(point.x, point.y))))
             {
-                cout << "left up -> right down" << endl;
+                // cout << "left up -> right down" << endl;
             }
 
             if (divided_Image_data[0].position.contains(cv::Point(point.x, point.y)))

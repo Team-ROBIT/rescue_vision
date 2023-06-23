@@ -1,0 +1,3 @@
+KERNEL=="video[0-9]*", SUBSYSTEM=="video4linux", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1e4e", ATTRS{idProduct}=="0100", ATTRS{serial}=="v1.0.0", ATTR{index}=="0", MODE="0666", SYMLINK+="THERMAL-CAM"
+
+
