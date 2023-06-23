@@ -57,7 +57,7 @@ namespace vision_rescue
         gray_clone = clone_mat.clone();
         cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
         threshold(gray_clone, clone_binary, 80, 255, cv::THRESH_BINARY);
-        HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 50, range_radius_small, range_radius_big); // 100->50
+        HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 10, range_radius_small, range_radius_big); // 100->50
         for (size_t i = 0; i < circles.size(); i++)
         {
             c = circles[i];
@@ -143,7 +143,7 @@ namespace vision_rescue
             range_radius_big--;
         }
 
-        find_contour();
+        // find_contour();
     }
 
     void Findc::remove_text()
@@ -351,7 +351,7 @@ namespace vision_rescue
                 update();
                 img_tr.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_mat).toImageMsg());
                 img_cup.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, ok_cup_mat).toImageMsg());
-                img_cup_expand.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, expand_cup_mat2).toImageMsg());
+                // img_cup_expand.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, expand_cup_mat2).toImageMsg());
                 img_cup_binary.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, last_binary).toImageMsg());
                 img_expand_binary.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, expand_cup_binary).toImageMsg());
                 img_expand_binary2.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, expand_cup_binary2).toImageMsg());
