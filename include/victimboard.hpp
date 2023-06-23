@@ -33,7 +33,9 @@ namespace vision_rescue
         Victimboard(int argc, char **argv);
         ~Victimboard();
         Mat *original;
+        Mat *original_thermal;
         Mat clone_mat;
+        Mat clone_thermal_mat;
         Mat gray_clone;
         Mat output_qr;
         Mat Image_to_Binary_OTSU;
@@ -80,11 +82,14 @@ namespace vision_rescue
         std::vector<std::string> class_names;
         std::vector<Point2i> hazmat_loc;
 
+        Ptr<ORB> orb = ORB::create();
+
         cv::dnn::Net net;
 
         vector<Point> points;
 
         bool isRecv;
+        // bool isRecv_thermal;
         bool ifCaptured = false;
         bool isOverlapping;
         bool init();
@@ -94,6 +99,7 @@ namespace vision_rescue
 
         ros::Publisher img_ad;
         ros::Publisher img_divide;
+        // ros::Publisher img_thermal_vt;
 
         std::string param;
 
@@ -101,7 +107,9 @@ namespace vision_rescue
         int init_argc;
         char **init_argv;
         void imageCallBack(const sensor_msgs::ImageConstPtr &msg_img);
+        // void imageCallBack_thermal(const sensor_msgs::ImageConstPtr &msg_img);
         image_transport::Subscriber img_sub;
+        // image_transport::Subscriber img_sub2;
     };
 
 }

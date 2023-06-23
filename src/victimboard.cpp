@@ -100,10 +100,12 @@ namespace vision_rescue
         image_transport::ImageTransport img(n);
         img_ad = n.advertise<sensor_msgs::Image>("img_ad", 100);
         img_divide = n.advertise<sensor_msgs::Image>("img_divide", 100);
+        // img_thermal_vt = n.advertise<sensor_msgs::Image>("img_thermal_vt", 100);
         n.getParam("/victimboard/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
         img_sub = img.subscribe(param, 100, &Victimboard::imageCallBack, this); /// camera/color/image_raw
-        // Add your ros communications here.
+        // img_sub2 = img.subscribe("/capra_thermal_cam/image_raw", 100, &Victimboard::imageCallBack, this);
+        //  Add your ros communications here.
         return true;
     }
 
@@ -119,6 +121,7 @@ namespace vision_rescue
                 update();
                 img_ad.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, Image_to_Binary_adaptive).toImageMsg());
                 img_divide.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, Captured_Image_RGB).toImageMsg());
+                // img_thermal_vt.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_thermal_mat).toImageMsg());
             }
         }
     }
@@ -135,10 +138,28 @@ namespace vision_rescue
         }
     }
 
+    /*
+    void Victimboard::imageCallBack_thermal(const sensor_msgs::ImageConstPtr &msg_img)
+    {
+        if (!isRecv_thermal)
+        {
+            original_thermal = new cv::Mat(cv_bridge::toCvCopy(msg_img, sensor_msgs::image_encodings::BGR8)->image);
+            if (original_thermal != NULL)
+            {
+                isRecv_thermal = true;
+            }
+        }
+    }
+    */
+
     void Victimboard::update()
     {
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
+
+        // clone_thermal_mat = original_thermal->clone();
+        // cv::resize(clone_mat, clone_mat, cv::Size(480, 360), 0, 0, cv::INTER_CUBIC);
+
         frame = clone_mat.clone();
         Image_to_Binary_OTSU = clone_mat.clone();
         GaussianBlur(Image_to_Binary_OTSU, Image_to_Binary_OTSU, Size(15, 15), 2.0);
@@ -159,50 +180,103 @@ namespace vision_rescue
         // if (!(((image_x - 10 < 0)) || ((image_x - 10 + image_width_divided3 + 20) > 640) || ((image_y - 10) < 0) || ((image_y - 10 + image_height_divided3 + 20) > 360)))
         divide_box();
         set_yolo();
-        // detect_location();
+        detect_location();
 
         delete original;
+        // delete original_thermal;
         isRecv = false;
     }
 
     void Victimboard::detect_location()
     {
+
+        for (int i = 0; i < 8; i++)
+        {
+            divided_Image_data[i].Image = Captured_Image_RGB(divided_Image_data[i].position);
+            resize(divided_Image_data[i].Image, divided_Image_data[i].Image, Size(200, 200), 0, 0, CV_INTER_LINEAR);
+            orb->detect(divided_Image_data[i].Image, divided_Image_data[i].Keypoints, noArray());
+            cout << i << ") KeyPoints: " << divided_Image_data[i].Keypoints.size() << endl;
+        }
+
+        int count_KeyPoints[8];
+        for (int i = 0; i < 8; i++)
+            count_KeyPoints[i] = divided_Image_data[i].Keypoints.size();
+        sort(count_KeyPoints, count_KeyPoints + 8);
+
+        if ((count_KeyPoints[0] != count_KeyPoints[1]) && (count_KeyPoints[1] == count_KeyPoints[2])) // if [0][1][1]....
+        {
+            for (int j = 0; j < 8; j++)
+            {
+                if (divided_Image_data[j].Keypoints.size() == count_KeyPoints[0]) // count_KeyPoints[0] == count_KeyPoints[1]
+                    save_image_position__Rotation_Direction[0] = j;
+            }
+            if (save_image_position__Rotation_Direction[0] == 1)
+                save_image_position__Rotation_Direction[1] = 6;
+            else if (save_image_position__Rotation_Direction[0] == 3)
+                save_image_position__Rotation_Direction[1] = 4;
+        }
+        // if [0][0][0].... retry
+        else if (count_KeyPoints[0] == count_KeyPoints[1])
+        { // if the number of Keypoints is same
+            int count = 0;
+            for (int j = 0; j < 8; j++)
+            {
+                if (divided_Image_data[j].Keypoints.size() == count_KeyPoints[0]) // count_KeyPoints[0] == count_KeyPoints[1]
+                {
+                    save_image_position__Rotation_Direction[count] = j;
+                    count++;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                if (count_KeyPoints[0] == divided_Image_data[i].Keypoints.size())
+                    save_image_position__Rotation_Direction[0] = i;
+                if (count_KeyPoints[1] == divided_Image_data[i].Keypoints.size())
+                    save_image_position__Rotation_Direction[1] = i;
+            }
+        }
+
+        cout << endl
+             << "Rotation Direction Image: " << save_image_position__Rotation_Direction[0] << ", " << save_image_position__Rotation_Direction[1] << endl
+             << endl;
+
+        //------------------------------------------------hazmat----------------------------------------------
+
         int check = 0;
 
         for (const auto &point : hazmat_loc)
         {
+            // cout << point.x << "   " << point.y << endl;
+            // cout << divided_Image_data[0].position.x << "     " << divided_Image_data[0].position.y << endl;
+
             if (check == 1 && (divided_Image_data[7].position.contains(cv::Point(point.x, point.y))))
             {
-                // 위치 확인
+                cout << "left up -> right down" << endl;
             }
             else if (check == 2 && (divided_Image_data[5].position.contains(cv::Point(point.x, point.y))))
             {
+                cout << "right up -> left down" << endl;
             }
             else if (check == 3 && (divided_Image_data[2].position.contains(cv::Point(point.x, point.y))))
             {
+                cout << "right up -> left down" << endl;
             }
             else if (check == 4 && (divided_Image_data[0].position.contains(cv::Point(point.x, point.y))))
             {
+                cout << "left up -> right down" << endl;
             }
-            else
-                continue;
 
             if (divided_Image_data[0].position.contains(cv::Point(point.x, point.y)))
-            {
                 check = 1;
-            }
             else if (divided_Image_data[2].position.contains(cv::Point(point.x, point.y)))
-            {
                 check = 2;
-            }
             else if (divided_Image_data[5].position.contains(cv::Point(point.x, point.y)))
-            {
                 check = 3;
-            }
             else if (divided_Image_data[7].position.contains(cv::Point(point.x, point.y)))
-            {
                 check = 4;
-            }
         }
     }
 
