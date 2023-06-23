@@ -55,7 +55,7 @@ namespace vision_rescue
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
         gray_clone = clone_mat.clone();
         cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
-        threshold(gray_clone, clone_binary, 70, 255, cv::THRESH_BINARY);
+        threshold(gray_clone, clone_binary, 80, 255, cv::THRESH_BINARY);
         HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 50, range_radius_small, range_radius_big); // 100->50
         for (size_t i = 0; i < circles.size(); i++)
         {
@@ -94,7 +94,7 @@ namespace vision_rescue
         in_cup_mat = clone_mat(Range(c[1] - radius, c[1] + radius), Range(c[0] - radius, c[0] + radius));
         cv::resize(in_cup_mat, in_cup_mat, cv::Size(300, 300), 0, 0, cv::INTER_CUBIC);
         cvtColor(in_cup_mat, in_cup_gray, cv::COLOR_BGR2GRAY);
-        threshold(in_cup_gray, in_cup_binary, 70, 255, cv::THRESH_BINARY);
+        threshold(in_cup_gray, in_cup_binary, 80, 255, cv::THRESH_BINARY);
         in_cup_binary = ~in_cup_binary;
         find_ok = check_black(in_cup_binary);
     }
@@ -115,7 +115,7 @@ namespace vision_rescue
         expand_cup_mat2 = clone_mat(Range(c[1] - big_radius2, c[1] + big_radius2), Range(c[0] - big_radius2, c[0] + big_radius2));
         cv::resize(expand_cup_mat2, expand_cup_mat2, cv::Size(300, 300), 0, 0, cv::INTER_CUBIC);
         cvtColor(expand_cup_mat2, expand_cup_gray2, cv::COLOR_BGR2GRAY);
-        threshold(expand_cup_gray2, expand_cup_binary2, 50, 255, cv::THRESH_BINARY);
+        threshold(expand_cup_gray2, expand_cup_binary2, 70, 255, cv::THRESH_BINARY);
         expand_cup_binary2 = ~expand_cup_binary2;
 
         //
@@ -289,7 +289,7 @@ namespace vision_rescue
         bool up = binary_mat.at<uchar>(20, 150);
         bool down = binary_mat.at<uchar>(280, 150);
         bool right = binary_mat.at<uchar>(150, 280);
-        // cout<<up<<" "<<left<<" "<<right<<" "<<down<<endl;
+        cout<<up<<" "<<left<<" "<<right<<" "<<down<<endl;
 
         if (up == 1)
             cnt++;
