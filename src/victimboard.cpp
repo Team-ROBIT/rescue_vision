@@ -12,6 +12,7 @@
 
 #include <ros/ros.h>
 #include <ros/network.h>
+#include <ros/package.h>
 #include <string>
 #include <std_msgs/String.h>
 #include <sstream>
@@ -20,6 +21,19 @@
 #include <opencv2/highgui.hpp>
 
 #include "../include/victimboard.hpp"
+
+#include <opencv2/xfeatures2d.hpp>
+
+constexpr float CONFIDENCE_THRESHOLD = 0.5; // 확률 경계값
+constexpr float NMS_THRESHOLD = 0.4;
+constexpr int NUM_CLASSES = 15;
+
+const cv::Scalar colors[] = {
+    {0, 255, 255},
+    {255, 255, 0},
+    {0, 255, 0},
+    {255, 0, 0}};
+const auto NUM_COLORS = sizeof(colors) / sizeof(colors[0]);
 
 int main(int argc, char **argv)
 {
@@ -38,6 +52,30 @@ namespace vision_rescue
                                                       init_argv(argv),
                                                       isRecv(false)
     {
+
+        std::string packagePath = ros::package::getPath("rescue_vision");
+        cout << packagePath << endl;
+        std::string dir = packagePath + "/yolo/";
+        {
+            std::ifstream class_file(dir + "classes.txt");
+            if (!class_file)
+            {
+                std::cerr << "failed to open classes.txt\n";
+            }
+
+            std::string line;
+            while (std::getline(class_file, line))
+                class_names.push_back(line);
+        }
+
+        std::string modelConfiguration = dir + "yolov7_tiny_hazmat.cfg";
+        std::string modelWeights = dir + "2023_06_12.weights";
+
+        net = cv::dnn::readNetFromDarknet(modelConfiguration, modelWeights);
+        //     net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+        //     net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
         init();
     }
 
@@ -101,6 +139,7 @@ namespace vision_rescue
     {
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
+        frame = clone_mat.clone();
         Image_to_Binary_OTSU = clone_mat.clone();
         GaussianBlur(Image_to_Binary_OTSU, Image_to_Binary_OTSU, Size(15, 15), 2.0);
         cvtColor(Image_to_Binary_OTSU, Image_to_Binary_OTSU, CV_RGB2GRAY);
@@ -117,25 +156,63 @@ namespace vision_rescue
         Captured_Image_to_Binary = Image_to_Binary_OTSU;
         //----------------------------------------------------------------------------------------------------------------------------
 
-        labeling(Captured_Image_to_Binary, image_x, image_y, image_width_divided3, image_height_divided3);
-
-        roi = Mat::zeros(Captured_Image_to_Binary.rows, Captured_Image_to_Binary.cols, CV_8UC1);
-        adaptive_capture = Image_to_Binary_adaptive;
-
-        cout << "before" << endl;
-
         // if (!(((image_x - 10 < 0)) || ((image_x - 10 + image_width_divided3 + 20) > 640) || ((image_y - 10) < 0) || ((image_y - 10 + image_height_divided3 + 20) > 360)))
-        //{
-        cout << "after" << endl;
         divide_box();
-        //}
+        set_yolo();
+        // detect_location();
 
         delete original;
         isRecv = false;
     }
 
+    void Victimboard::detect_location()
+    {
+        int check = 0;
+
+        for (const auto &point : hazmat_loc)
+        {
+            if (check == 1 && (divided_Image_data[7].position.contains(cv::Point(point.x, point.y))))
+            {
+                // 위치 확인
+            }
+            else if (check == 2 && (divided_Image_data[5].position.contains(cv::Point(point.x, point.y))))
+            {
+            }
+            else if (check == 3 && (divided_Image_data[2].position.contains(cv::Point(point.x, point.y))))
+            {
+            }
+            else if (check == 4 && (divided_Image_data[0].position.contains(cv::Point(point.x, point.y))))
+            {
+            }
+            else
+                continue;
+
+            if (divided_Image_data[0].position.contains(cv::Point(point.x, point.y)))
+            {
+                check = 1;
+            }
+            else if (divided_Image_data[2].position.contains(cv::Point(point.x, point.y)))
+            {
+                check = 2;
+            }
+            else if (divided_Image_data[5].position.contains(cv::Point(point.x, point.y)))
+            {
+                check = 3;
+            }
+            else if (divided_Image_data[7].position.contains(cv::Point(point.x, point.y)))
+            {
+                check = 4;
+            }
+        }
+    }
+
     void Victimboard::divide_box()
     {
+
+        labeling(Captured_Image_to_Binary, image_x, image_y, image_width_divided3, image_height_divided3);
+
+        roi = Mat::zeros(Captured_Image_to_Binary.rows, Captured_Image_to_Binary.cols, CV_8UC1);
+        adaptive_capture = Image_to_Binary_adaptive;
         rectangle(roi, Rect(image_x - 10, image_y - 10, image_width_divided3 + 20, image_height_divided3 + 20), Scalar::all(255), -1, LINE_8, 0);
         bitwise_and(adaptive_capture, roi, result, noArray());
         dilate(result, result, mask, Point(-1, -1), 2);
@@ -187,4 +264,133 @@ namespace vision_rescue
             }
         }
     }
+
+    void Victimboard::set_yolo()
+    {
+        auto output_names = net.getUnconnectedOutLayersNames();
+        std::vector<cv::Mat> detections;
+
+        auto total_start = std::chrono::steady_clock::now();
+        cv::dnn::blobFromImage(frame, blob, 0.00392, cv::Size(416, 416), cv::Scalar(), true, false, CV_32F);
+        net.setInput(blob);
+
+        auto dnn_start = std::chrono::steady_clock::now();
+        net.forward(detections, output_names);
+        auto dnn_end = std::chrono::steady_clock::now();
+
+        std::vector<int> indices[NUM_CLASSES];
+        std::vector<cv::Rect> boxes[NUM_CLASSES];
+        std::vector<float> scores[NUM_CLASSES];
+
+        for (auto &output : detections)
+        {
+            const auto num_boxes = output.rows;
+            for (int i = 0; i < num_boxes; i++)
+            {
+                auto x = output.at<float>(i, 0) * frame.cols; // 중심 x
+                auto y = output.at<float>(i, 1) * frame.rows; // 중심 y
+                auto width = output.at<float>(i, 2) * frame.cols;
+                auto height = output.at<float>(i, 3) * frame.rows;
+                cv::Rect rect(x - width / 2, y - height / 2, width, height);
+
+                for (int c = 0; c < NUM_CLASSES; c++)
+                {
+                    auto confidence = *output.ptr<float>(i, 5 + c);
+                    if (confidence >= CONFIDENCE_THRESHOLD)
+                    {
+                        boxes[c].push_back(rect);
+                        scores[c].push_back(confidence);
+                    }
+                }
+            }
+        }
+
+        for (int c = 0; c < NUM_CLASSES; c++)
+            cv::dnn::NMSBoxes(boxes[c], scores[c], 0.0, NMS_THRESHOLD, indices[c]);
+
+        for (int c = 0; c < NUM_CLASSES; c++)
+        {
+            for (size_t i = 0; i < indices[c].size(); ++i)
+            {
+                const auto color = colors[c % NUM_COLORS];
+                auto idx = indices[c][i];
+                const auto &rect = boxes[c][idx];
+
+                // Check for overlapping boxes of the same class
+                isOverlapping = false;
+                if (indices[c].size() != 0)
+                {
+                    for (size_t j = 0; j < indices[c].size(); ++j)
+                    {
+                        if (j != i)
+                        {
+                            auto idx2 = indices[c][j];
+                            const auto &rect2 = boxes[c][idx2];
+                            if (isRectOverlapping(rect, rect2))
+                            {
+                                // If there is an overlapping box, check the sizes
+                                if (rect2.area() < rect.area())
+                                {
+                                    // If the other box is smaller, mark it as overlapping and break
+                                    isOverlapping = true;
+                                    break;
+                                }
+                                else
+                                {
+                                    // If the current box is smaller, skip it
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Draw the box only if it is not overlapping with a smaller box
+                if (!isOverlapping)
+                {
+
+                    hazmat_loc.emplace_back(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
+                    cv::rectangle(Captured_Image_RGB, cv::Point(rect.x, rect.y), cv::Point(rect.x + rect.width, rect.y + rect.height), color, 3);
+
+                    std::ostringstream label_ss;
+                    label_ss << class_names[c] << ": " << std::fixed << std::setprecision(2) << scores[c][idx];
+                    auto label = label_ss.str();
+
+                    int baseline;
+                    auto label_bg_sz = cv::getTextSize(label.c_str(), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
+                    cv::rectangle(Captured_Image_RGB, cv::Point(rect.x, rect.y - label_bg_sz.height - baseline - 10), cv::Point(rect.x + label_bg_sz.width, rect.y), color, cv::FILLED);
+                    cv::putText(Captured_Image_RGB, label.c_str(), cv::Point(rect.x, rect.y - baseline - 5), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0));
+                }
+            }
+        }
+
+        auto total_end = std::chrono::steady_clock::now();
+
+        float inference_fps = 1000.0 / std::chrono::duration_cast<std::chrono::milliseconds>(dnn_end - dnn_start).count();
+        float total_fps = 1000.0 / std::chrono::duration_cast<std::chrono::milliseconds>(total_end - total_start).count();
+        std::ostringstream stats_ss;
+        stats_ss << std::fixed << std::setprecision(2);
+        stats_ss << "Inference FPS: " << inference_fps << ", Total FPS: " << total_fps;
+        auto stats = stats_ss.str();
+
+        int baseline;
+        auto stats_bg_sz = cv::getTextSize(stats.c_str(), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
+        cv::rectangle(Captured_Image_RGB, cv::Point(0, 0), cv::Point(stats_bg_sz.width, stats_bg_sz.height + 10), cv::Scalar(0, 0, 0), cv::FILLED);
+        cv::putText(Captured_Image_RGB, stats.c_str(), cv::Point(0, stats_bg_sz.height + 5), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(255, 255, 255));
+    }
+
+    bool Victimboard::isRectOverlapping(const cv::Rect &rect1, const cv::Rect &rect2)
+    {
+        int x1 = std::max(rect1.x, rect2.x);
+        int y1 = std::max(rect1.y, rect2.y);
+        int x2 = std::min(rect1.x + rect1.width, rect2.x + rect2.width);
+        int y2 = std::min(rect1.y + rect1.height, rect2.y + rect2.height);
+
+        // If the intersection area is positive, the rectangles overlap
+        if (x1 < x2 && y1 < y2)
+            return true;
+        else
+            return false;
+    }
+
 }

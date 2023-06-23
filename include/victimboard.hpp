@@ -19,6 +19,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/xfeatures2d.hpp>
 
 using namespace cv;
 using namespace std;
@@ -46,6 +47,8 @@ namespace vision_rescue
         Mat roi;
         Mat adaptive_capture;
         Mat result;
+        Mat frame;
+        Mat blob;
 
         typedef struct
         {
@@ -55,6 +58,10 @@ namespace vision_rescue
         } Data;
 
         Data divided_Image_data[8];
+
+        int save_image_position__Rotation_Direction[2] = {
+            9,
+        }; // save Rotation_Direction image Index
 
         int image_x;
         int image_y;
@@ -67,12 +74,21 @@ namespace vision_rescue
         void all_clear();
         void labeling(const Mat &input_img, int &_x, int &_y, int &_width, int &_height);
         void divide_box();
+        void detect_location();
+        void set_yolo();
+
+        std::vector<std::string> class_names;
+        std::vector<Point2i> hazmat_loc;
+
+        cv::dnn::Net net;
 
         vector<Point> points;
 
         bool isRecv;
         bool ifCaptured = false;
+        bool isOverlapping;
         bool init();
+        bool isRectOverlapping(const cv::Rect &rect1, const cv::Rect &rect2);
 
         String info;
 
