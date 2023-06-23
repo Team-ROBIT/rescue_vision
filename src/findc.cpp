@@ -212,7 +212,7 @@ namespace vision_rescue
         if (count2 > 0)
         {
             averageAngle2 = -(sumAngles2 / count2);
-            cout << "1: " << averageAngle2 << endl;
+            // cout << "1: " << averageAngle2 << endl;
         }
 
         //-------------------------------------------------------big----------------------------------------------------
@@ -272,30 +272,39 @@ namespace vision_rescue
             {
             case -4:
                 putText(clone_mat, "left", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                direction = 1;
                 break;
             case -3:
                 putText(clone_mat, "left_down", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                direction = 2;
                 break;
             case -2:
                 putText(clone_mat, "down", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                direction = 3;
                 break;
             case -1:
                 putText(clone_mat, "right_down", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                direction = 4;
                 break;
             case 0:
                 putText(clone_mat, "right", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                direction = 5;
                 break;
             case 1:
                 putText(clone_mat, "right_up", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                direction = 6;
                 break;
             case 2:
                 putText(clone_mat, "up", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                direction = 7;
                 break;
             case 3:
                 putText(clone_mat, "left_up", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                direction = 8;
                 break;
             case 4:
                 putText(clone_mat, "left", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                direction = 9;
                 break;
             }
         }
