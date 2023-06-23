@@ -53,9 +53,15 @@ namespace vision_rescue
     {
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
+<<<<<<< Updated upstream
         gray_clone = clone_mat.clone();
         cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
         HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 50, range_radius_small, range_radius_big); // 100->50
+=======
+        gray_clone=clone_mat.clone();cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
+        threshold(gray_clone, clone_binary, 70, 255, cv::THRESH_BINARY);
+        HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 50, range_radius_small, range_radius_big); //100->50
+>>>>>>> Stashed changes
         for (size_t i = 0; i < circles.size(); i++)
         {
             c = circles[i];
@@ -367,6 +373,19 @@ namespace vision_rescue
         }
     }
 
+      void Findc::find_contour()
+    {
+        findContours(in_cup_binary, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
+        threshold(in_cup_binary, contour_lane, 100, 255, THRESH_MASK);
+
+        for (int i = 0; i < contours.size(); i++)
+        {
+            drawContours(ok_cup_mat, contours, i, Scalar(0, 255, 0), 1);
+            drawContours(contour_lane, contours, i, Scalar::all(255), 1);
+        }
+    }
+
+    /*
     void Findc::find_contour()
     {
         findContours(in_cup_binary, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
@@ -378,5 +397,6 @@ namespace vision_rescue
             drawContours(contour_lane, contours, i, Scalar::all(255), 1);
         }
     }
+    */
 
 }
