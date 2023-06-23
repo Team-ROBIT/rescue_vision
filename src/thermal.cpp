@@ -101,7 +101,7 @@ namespace vision_rescue
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(480, 360), 0, 0, cv::INTER_CUBIC);
         output_thermal = clone_mat.clone();
-        applyColorMap(clone_mat, output_thermal, COLORMAP_INFERNO); //색감 변환
+        applyColorMap(clone_mat, output_thermal, COLORMAP_JET); //색감 변환(JET, INFERNO...)
         gray_clone=clone_mat.clone();cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
 
         delete original;
