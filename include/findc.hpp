@@ -92,6 +92,7 @@ namespace vision_rescue
 
         ros::Publisher img_tr;
         ros::Publisher img_cup;
+        ros::Publisher img_cup_expand;
         ros::Publisher img_cup_binary;
         ros::Publisher img_expand_binary;
         ros::Publisher img_expand_binary2;

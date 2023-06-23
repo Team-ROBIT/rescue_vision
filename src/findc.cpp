@@ -107,8 +107,13 @@ namespace vision_rescue
         expand_cup_mat = clone_mat(Range(c[1] - big_radius, c[1] + big_radius), Range(c[0] - big_radius, c[0] + big_radius));
         cv::resize(expand_cup_mat, expand_cup_mat, cv::Size(300, 300), 0, 0, cv::INTER_CUBIC);
         cvtColor(expand_cup_mat, expand_cup_gray, cv::COLOR_BGR2GRAY);
+<<<<<<< Updated upstream
         threshold(expand_cup_gray, expand_cup_binary, 80, 255, cv::THRESH_BINARY);
         expand_cup_binary = ~expand_cup_binary;
+=======
+        threshold(expand_cup_gray, expand_cup_binary, 70, 255, cv::THRESH_BINARY);
+        expand_cup_binary=~expand_cup_binary;
+>>>>>>> Stashed changes
 
         int big_radius2 = 5.3 * radius;
 
@@ -327,8 +332,14 @@ namespace vision_rescue
         img_tr = n.advertise<sensor_msgs::Image>("img_tr", 100);
         img_cup = n.advertise<sensor_msgs::Image>("img_cup", 100);
         img_cup_binary = n.advertise<sensor_msgs::Image>("img_cup_binary", 100);
+<<<<<<< Updated upstream
         img_expand_binary = n.advertise<sensor_msgs::Image>("img_expand_binary", 100);
         img_expand_binary2 = n.advertise<sensor_msgs::Image>("img_expand_binary2", 100);
+=======
+        img_cup_expand = n.advertise<sensor_msgs::Image>("img_cup_expand", 100);
+        img_expand_binary= n.advertise<sensor_msgs::Image>("img_expand_binary", 100);
+        img_expand_binary2= n.advertise<sensor_msgs::Image>("img_expand_binary2", 100);
+>>>>>>> Stashed changes
         image_transport::ImageTransport img(n);
         n.getParam("/findc/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
@@ -350,6 +361,7 @@ namespace vision_rescue
                 update();
                 img_tr.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_mat).toImageMsg());
                 img_cup.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, ok_cup_mat).toImageMsg());
+                img_cup_expand.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, expand_cup_mat2).toImageMsg());
                 img_cup_binary.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, last_binary).toImageMsg());
                 img_expand_binary.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, expand_cup_binary).toImageMsg());
                 img_expand_binary2.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, expand_cup_binary2).toImageMsg());
@@ -369,6 +381,7 @@ namespace vision_rescue
         }
     }
 
+<<<<<<< Updated upstream
     void Findc::find_contour()
     {
         int x = c[0] - 5 * radius;
@@ -386,17 +399,18 @@ namespace vision_rescue
     }
 
     /*
+=======
+>>>>>>> Stashed changes
     void Findc::find_contour()
     {
-        findContours(in_cup_binary, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
-        threshold(in_cup_binary, contour_lane, 100, 255, THRESH_MASK);
+        findContours(expand_cup_binary2, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
+        //threshold(in_cup_binary, contour_lane, 100, 255, THRESH_MASK);
 
         for (int i = 0; i < contours.size(); i++)
         {
-            drawContours(ok_cup_mat, contours, i, Scalar(0, 255, 0), 1);
-            drawContours(contour_lane, contours, i, Scalar::all(255), 1);
+            drawContours(expand_cup_mat2, contours, i, Scalar(0, 255, 0), 1);
+            //drawContours(contour_lane, contours, i, Scalar::all(255), 1);
         }
     }
-    */
 
 }
