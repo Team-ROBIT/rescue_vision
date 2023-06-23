@@ -66,6 +66,7 @@ namespace vision_rescue
         int range_radius_small = 10; // 50
         int range_radius_big = 120;
         int distance;
+        int direction = 0;
 
         bool check_black(const Mat &binary_mat);
         void find_contour();
@@ -76,7 +77,6 @@ namespace vision_rescue
         void all_clear();
         void choose_circle(Point center, int radius);
         void detect_way();
-        void remove_text();
 
         double slope;
         double radians;

@@ -158,7 +158,7 @@ namespace vision_rescue
         if (first_ring == true)
         {
             // 두번째 원이다
-            cout << "check!" << endl;
+            // cout << "check!" << endl;
             detect_way();
         }
         else
@@ -167,10 +167,6 @@ namespace vision_rescue
         }
 
         // find_contour();
-    }
-
-    void Findc::remove_text()
-    {
     }
 
     void Findc::detect_way()
@@ -263,7 +259,7 @@ namespace vision_rescue
         {
             double averageAngle = -(sumAngles / count);
             // double averageAngle = std::fmod(-(sumAngles / count) + 360.0, 360.0);
-            cout << averageAngle << endl;
+            // cout << averageAngle << endl;
 
             int averageAngle_calc = 0;
 
@@ -271,35 +267,35 @@ namespace vision_rescue
             if (averageAngle_calc > 180)
                 averageAngle_calc -= 360;
             int averageAngle_i = (averageAngle_calc + 22.5 * ((averageAngle_calc > 0) ? 1 : -1)) / 45.0;
-            cout << averageAngle_i << endl;
+            // cout << averageAngle_i << endl;
             switch (averageAngle_i)
             {
             case -4:
-                cout << "left" << endl;
+                putText(clone_mat, "left", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
                 break;
             case -3:
-                cout << "left_down" << endl;
+                putText(clone_mat, "left_down", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
                 break;
             case -2:
-                cout << "down" << endl;
+                putText(clone_mat, "down", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
                 break;
             case -1:
-                cout << "right_down" << endl;
+                putText(clone_mat, "right_down", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
                 break;
             case 0:
-                cout << "right" << endl;
+                putText(clone_mat, "right", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
                 break;
             case 1:
-                cout << "right_up" << endl;
+                putText(clone_mat, "right_up", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
                 break;
             case 2:
-                cout << "up" << endl;
+                putText(clone_mat, "up", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
                 break;
             case 3:
-                cout << "left_up" << endl;
+                putText(clone_mat, "left_up", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
                 break;
             case 4:
-                cout << "left" << endl;
+                putText(clone_mat, "left", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
                 break;
             }
         }
@@ -313,7 +309,7 @@ namespace vision_rescue
         bool up = binary_mat.at<uchar>(20, 150);
         bool down = binary_mat.at<uchar>(280, 150);
         bool right = binary_mat.at<uchar>(150, 280);
-        cout << up << " " << left << " " << right << " " << down << endl;
+        // cout << up << " " << left << " " << right << " " << down << endl;
 
         if (up == 1)
             cnt++;
@@ -324,7 +320,7 @@ namespace vision_rescue
         if (down == 1)
             cnt++;
 
-        if (cnt >= 2)
+        if (cnt >= 3)
             return true;
         else
             return false;
