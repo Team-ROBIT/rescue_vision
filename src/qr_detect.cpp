@@ -61,9 +61,9 @@ namespace vision_rescue
         ros::NodeHandle n;
         image_transport::ImageTransport img(n);
         img_qr = n.advertise<sensor_msgs::Image>("img_qr", 100);
-        n.getParam("qr", param);
+        n.getParam("/qr_detect/camera", param);
         cout << param << endl;
-        img_sub = img.subscribe("/camera1/usb_cam/image_raw", 100, &QR_DETECT::imageCallBack, this); /// camera/color/image_raw
+        img_sub = img.subscribe(param, 100, &QR_DETECT::imageCallBack, this); /// camera/color/image_raw
         // Add your ros communications here.
         return true;
     }

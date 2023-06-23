@@ -53,7 +53,6 @@ namespace vision_rescue
         Mat expand_cup_binary2;
         Mat last_binary;
 
-
         Vec3i c;
         vector<Vec3f> circles; //(중심좌표x, 중심좌표y, 반지름r)
         vector<Point2f> corners;
@@ -66,8 +65,8 @@ namespace vision_rescue
         int range_radius_small = 10; // 50
         int range_radius_big = 120;
         int distance;
-        
-        bool check_black(const Mat & binary_mat);
+
+        bool check_black(const Mat &binary_mat);
         void find_contour();
         void random_image_save(const Mat &input_img, const char *format);
         void catch_c(Point center, int radius);
@@ -87,16 +86,17 @@ namespace vision_rescue
 
         bool isRecv;
         bool init();
-        bool find_ok=false;
-        bool second_ring=false;
-        bool first_ring=false;
-    
+        bool find_ok = false;
+        bool second_ring = false;
+        bool first_ring = false;
+
         ros::Publisher img_tr;
         ros::Publisher img_cup;
         ros::Publisher img_cup_binary;
         ros::Publisher img_expand_binary;
         ros::Publisher img_expand_binary2;
 
+        std::string param;
 
     private:
         int init_argc;
