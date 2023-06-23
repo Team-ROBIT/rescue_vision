@@ -2,17 +2,18 @@
     <arg name="type" />
     <arg name="camera" default="/camera2/color/image_raw" />
     <arg name="rs1" default="021222073502" />
+    <arg name="camera_type" default="rs" />
     <arg name="rs2" default="948522070995" />
 
 
   <!-- front realsense -->
-  <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
-    <arg name="camera" default="camera2"/>
-    <arg name="serial_no" value="$(arg rs2)"/>
-  </include>
-  
+    <group if="$(eval camera_type=='rs')" >
+        <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+            <arg name="camera" default="camera2"/>
+            <arg name="serial_no" value="$(arg rs2)"/>
+        </include>
 
-    <group if="$(eval type=='findc')" >
+        <group if="$(eval type=='findc')" >
         <node pkg="rescue_vision" type="findc" name="findc" output="screen">
             <param name="camera" type="string" value="$(arg camera)"/>
         </node>
@@ -35,4 +36,40 @@
             <param name="camera" type="string" value="$(arg camera)"/>
         </node>    
     </group>
+    </group>
+
+    <group if="$(eval camera_type=='usb')" >
+
+    <include file="$(find usb_cam)/launch/usb_cam-test.launch" />
+        <group if="$(eval type=='findc')" >
+            <node pkg="rescue_vision" type="findc" name="findc" output="screen">
+                <param name="camera" type="string" value="$(arg camera)"/>
+            </node>
+        </group>
+
+        <group if="$(eval type=='hazmat')" >
+            <node pkg="rescue_vision" type="hazmat" name="hazmat" output="screen">
+                <param name="camera" type="string" value="$(arg camera)"/>
+            </node>
+        </group>
+
+        <group if="$(eval type=='qr')" >
+            <node pkg="rescue_vision" type="qr_detect" name="qr_detect" output="screen">
+                <param name="camera" type="string" value="$(arg camera)"/>
+            </node>
+        </group>
+
+        <group if="$(eval type=='thermal')">
+            <node pkg="rescue_vision" type="thermal" name="thermal" output="screen">
+                <param name="camera" type="string" value="$(arg camera)"/>
+            </node>    
+        
+        
+        </group>
+    
+    </group>
+
+
+
+   
 </launch>
