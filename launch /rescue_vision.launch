@@ -11,6 +11,7 @@
         <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
             <!-- <arg name="serial_no" value="$(arg rs2)"/> -->
             <arg name="enable_depth" default="false"/>
+            <arg name="color_fps" default="15" />
         </include>
 
         <group if="$(eval type=='findc')" >
