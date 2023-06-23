@@ -51,6 +51,7 @@ namespace vision_rescue
 
     void Findc::update()
     {
+
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
         gray_clone = clone_mat.clone();
@@ -289,7 +290,7 @@ namespace vision_rescue
         bool up = binary_mat.at<uchar>(20, 150);
         bool down = binary_mat.at<uchar>(280, 150);
         bool right = binary_mat.at<uchar>(150, 280);
-        cout<<up<<" "<<left<<" "<<right<<" "<<down<<endl;
+        cout << up << " " << left << " " << right << " " << down << endl;
 
         if (up == 1)
             cnt++;
@@ -386,18 +387,18 @@ namespace vision_rescue
         }
     }
 }
-    /*
-    void Findc::find_contour()
-    {
-        findContours(expand_cup_binary2, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
-        //threshold(in_cup_binary, contour_lane, 100, 255, THRESH_MASK);
+/*
+void Findc::find_contour()
+{
+    findContours(expand_cup_binary2, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
+    //threshold(in_cup_binary, contour_lane, 100, 255, THRESH_MASK);
 
-        for (int i = 0; i < contours.size(); i++)
-        {
-            drawContours(expand_cup_mat2, contours, i, Scalar(0, 255, 0), 1);
-            //drawContours(contour_lane, contours, i, Scalar::all(255), 1);
-        }
+    for (int i = 0; i < contours.size(); i++)
+    {
+        drawContours(expand_cup_mat2, contours, i, Scalar(0, 255, 0), 1);
+        //drawContours(contour_lane, contours, i, Scalar::all(255), 1);
     }
+}
 
 }
 */
