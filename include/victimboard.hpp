@@ -21,35 +21,35 @@
 #include <opencv2/highgui.hpp>
 
 using namespace cv;
+using namespace std;
 
-namespace vision_rescue{
-    
-    class Thermal{
+namespace vision_rescue
+{
+
+    class Victimboard
+    {
     public:
-        Thermal(int argc, char **argv);
-        ~Thermal();
+        Victimboard(int argc, char **argv);
+        ~Victimboard();
         Mat *original;
         Mat clone_mat;
         Mat gray_clone;
-        Mat output_thermal;
-        Mat thermal_8bit;
-  
+        Mat output_qr;
+        Mat Image_to_Binary_OTSU;
+        Mat Image_to_Binary_adaptive;
+        Mat mask = getStructuringElement(MORPH_RECT, Size(3, 3), Point(1, 1));
+
         void run();
         void update();
         void all_clear();
-
-        double minVal, maxVal;
-        double minTemp, maxTemp;
-
-        Point minLoc, maxLoc;
+        vector<Point> points;
 
         bool isRecv;
         bool init();
 
         String info;
 
-        ros::Publisher img_thermal;
-        ros::Publisher img_thermal_gray;
+        ros::Publisher img_ad;
 
         std::string param;
 
@@ -58,8 +58,6 @@ namespace vision_rescue{
         char **init_argv;
         void imageCallBack(const sensor_msgs::ImageConstPtr &msg_img);
         image_transport::Subscriber img_sub;
-
-
-
     };
+
 }

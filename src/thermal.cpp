@@ -100,11 +100,21 @@ namespace vision_rescue
     void Thermal::update()
     {
         clone_mat = original->clone();
-        cv::resize(clone_mat, clone_mat, cv::Size(480, 360), 0, 0, cv::INTER_CUBIC);
+        cv::resize(clone_mat, clone_mat, cv::Size(640, 480), 0, 0, cv::INTER_CUBIC);
         output_thermal = clone_mat.clone();
-        applyColorMap(clone_mat, output_thermal, COLORMAP_JET); // 색감 변환(JET, INFERNO...)
+
+        //applyColorMap(clone_mat, output_thermal, COLORMAP_JET); // 색감 변환(JET, INFERNO...)
         gray_clone = clone_mat.clone();
         cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
+
+
+        minMaxLoc(clone_mat, &minVal, &maxVal, &minLoc, &maxLoc);
+        normalize(clone_mat, thermal_8bit, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+        cvtColor(thermal_8bit, thermal_8bit, cv::COLOR_GRAY2RGB);
+
+        minTemp=(1.8*(minVal/100.0)+32.0);
+        maxTemp=(1.8*(maxVal/100.0)+32.0);
+
 
         delete original;
         isRecv = false;
