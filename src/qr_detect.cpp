@@ -21,7 +21,7 @@
 
 #include "../include/qr_detect.hpp"
 
-int main(int argc,char ** argv)
+int main(int argc, char **argv)
 {
     vision_rescue::QR_DETECT start(argc, argv);
     start.run();
@@ -34,10 +34,9 @@ namespace vision_rescue
     using namespace std;
     using namespace ros;
 
-    QR_DETECT::QR_DETECT(int argc, char **argv) : 
-    init_argc(argc),
-    init_argv(argv),
-    isRecv(false)
+    QR_DETECT::QR_DETECT(int argc, char **argv) : init_argc(argc),
+                                                  init_argv(argv),
+                                                  isRecv(false)
     {
         init();
     }
@@ -61,8 +60,10 @@ namespace vision_rescue
         ros::start(); // explicitly needed since our nodehandle is going out of scope.
         ros::NodeHandle n;
         image_transport::ImageTransport img(n);
-        img_qr=n.advertise<sensor_msgs::Image>("img_qr", 100);
-        img_sub = img.subscribe("/camera1/usb_cam/image_raw", 100, &QR_DETECT::imageCallBack, this); ///camera/color/image_raw
+        img_qr = n.advertise<sensor_msgs::Image>("img_qr", 100);
+        n.getParam("qr", param);
+        cout << param << endl;
+        img_sub = img.subscribe("/camera1/usb_cam/image_raw", 100, &QR_DETECT::imageCallBack, this); /// camera/color/image_raw
         // Add your ros communications here.
         return true;
     }
@@ -100,21 +101,23 @@ namespace vision_rescue
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
         QRCodeDetector detector;
         cvtColor(clone_mat, gray_clone, COLOR_BGR2GRAY);
-        
+
         output_qr = clone_mat.clone();
 
-        if (detector.detect(gray_clone, points)) {
-        polylines(output_qr, points, true, Scalar(0, 0, 0), 2);
+        if (detector.detect(gray_clone, points))
+        {
+            polylines(output_qr, points, true, Scalar(0, 0, 0), 2);
 
-        info = detector.decode(gray_clone, points);
+            info = detector.decode(gray_clone, points);
 
-        if (!info.empty()) {
-            //polylines(output_qr, points, true, Scalar(255, 0, 0), 2);
-            putText(output_qr, info, points[0], 0.5, 1, Scalar(0, 0, 255), 1, 8);
-            cout<<info<<endl;
+            if (!info.empty())
+            {
+                // polylines(output_qr, points, true, Scalar(255, 0, 0), 2);
+                putText(output_qr, info, points[0], 0.5, 1, Scalar(0, 0, 255), 1, 8);
+                cout << info << endl;
+            }
         }
-    }   
         delete original;
-        isRecv=false; 
+        isRecv = false;
     }
 }

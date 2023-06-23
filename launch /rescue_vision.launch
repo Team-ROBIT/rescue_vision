@@ -1,0 +1,22 @@
+<launch>
+    <arg name="type" />
+    <arg name="camera" default="/camera1/usb_cam/image_raw" />
+
+    <group if="$(eval type=='findc')" >
+        <node pkg="rescue_vision" type="findc" name="findc" output="screen">
+            <param name="camera" type="string" value="$(arg camera)"/>
+        </node>
+    </group>
+
+    <group if="$(eval type=='hazmat')" >
+        <node pkg="rescue_vision" type="hazmat" name="hazmat" output="screen">
+            <param name="camera" type="string" value="$(arg camera)"/>
+        </node>
+    </group>
+
+    <group if="$(eval type=='qr')" >
+        <node pkg="rescue_vision" type="qr_detect" name="qr_detect" output="screen">
+            <param name="camera" type="string" value="$(arg camera)"/>
+        </node>
+    </group>
+</launch>

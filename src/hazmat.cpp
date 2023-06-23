@@ -12,6 +12,7 @@
 
 #include <ros/ros.h>
 #include <ros/network.h>
+#include <ros/package.h>
 #include <string>
 #include <std_msgs/String.h>
 #include <sstream>
@@ -21,7 +22,7 @@
 
 #include "../include/hazmat.hpp"
 
-constexpr float CONFIDENCE_THRESHOLD = 0.5; //확률 경계값
+constexpr float CONFIDENCE_THRESHOLD = 0.5; // 확률 경계값
 constexpr float NMS_THRESHOLD = 0.4;
 constexpr int NUM_CLASSES = 15;
 
@@ -29,11 +30,10 @@ const cv::Scalar colors[] = {
     {0, 255, 255},
     {255, 255, 0},
     {0, 255, 0},
-    {255, 0, 0}
-};
-const auto NUM_COLORS = sizeof(colors)/sizeof(colors[0]);
+    {255, 0, 0}};
+const auto NUM_COLORS = sizeof(colors) / sizeof(colors[0]);
 
-int main(int argc,char ** argv)
+int main(int argc, char **argv)
 {
     vision_rescue::Hazmat start(argc, argv);
     start.run();
@@ -46,12 +46,13 @@ namespace vision_rescue
     using namespace std;
     using namespace ros;
 
-    Hazmat::Hazmat(int argc, char **argv) : 
-    init_argc(argc),
-    init_argv(argv),
-    isRecv(false)
+    Hazmat::Hazmat(int argc, char **argv) : init_argc(argc),
+                                            init_argv(argv),
+                                            isRecv(false)
     {
-        std::string dir = "/home/robit/catkin_ws/src/rescue_vision/yolo/";
+        std::string packagePath = ros::package::getPath("rescue_vision");
+        cout << packagePath << endl;
+        std::string dir = packagePath + "/yolo/";
         {
             std::ifstream class_file(dir + "classes.txt");
             if (!class_file)
@@ -94,8 +95,10 @@ namespace vision_rescue
         ros::start(); // explicitly needed since our nodehandle is going out of scope.
         ros::NodeHandle n;
         image_transport::ImageTransport img(n);
-        img_yolo=n.advertise<sensor_msgs::Image>("img_yolo", 100);
-        img_sub = img.subscribe("/camera1/usb_cam/image_raw", 100, &Hazmat::imageCallBack, this); ///camera/color/image_raw
+        img_yolo = n.advertise<sensor_msgs::Image>("img_yolo", 100);
+        n.getParam("/hazmat/camera", param);
+        cout << param << endl;
+        img_sub = img.subscribe(param, 100, &Hazmat::imageCallBack, this); /// camera/color/image_raw
         // Add your ros communications here.
         return true;
     }
@@ -133,7 +136,7 @@ namespace vision_rescue
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
         set_yolo();
         delete original;
-        isRecv=false; 
+        isRecv = false;
     }
 
     void Hazmat::set_yolo()
@@ -159,9 +162,9 @@ namespace vision_rescue
             const auto num_boxes = output.rows;
             for (int i = 0; i < num_boxes; i++)
             {
-                auto x = output.at<float>(i, 0) * frame.cols; //중심 x
-                auto y = output.at<float>(i, 1) * frame.rows; //중심 y
-                auto width = output.at<float>(i, 2) * frame.cols; 
+                auto x = output.at<float>(i, 0) * frame.cols; // 중심 x
+                auto y = output.at<float>(i, 1) * frame.rows; // 중심 y
+                auto width = output.at<float>(i, 2) * frame.cols;
                 auto height = output.at<float>(i, 3) * frame.rows;
                 cv::Rect rect(x - width / 2, y - height / 2, width, height);
 
@@ -180,7 +183,6 @@ namespace vision_rescue
         for (int c = 0; c < NUM_CLASSES; c++)
             cv::dnn::NMSBoxes(boxes[c], scores[c], 0.0, NMS_THRESHOLD, indices[c]);
 
-        
         for (int c = 0; c < NUM_CLASSES; c++)
         {
             for (size_t i = 0; i < indices[c].size(); ++i)
@@ -191,30 +193,31 @@ namespace vision_rescue
 
                 // Check for overlapping boxes of the same class
                 isOverlapping = false;
-                if(indices[c].size()!=0){
-                for (size_t j = 0; j < indices[c].size(); ++j)
+                if (indices[c].size() != 0)
                 {
-                    if (j != i)
+                    for (size_t j = 0; j < indices[c].size(); ++j)
                     {
-                        auto idx2 = indices[c][j];
-                        const auto &rect2 = boxes[c][idx2];
-                        if (isRectOverlapping(rect, rect2))
+                        if (j != i)
                         {
-                            // If there is an overlapping box, check the sizes
-                            if (rect2.area() < rect.area())
+                            auto idx2 = indices[c][j];
+                            const auto &rect2 = boxes[c][idx2];
+                            if (isRectOverlapping(rect, rect2))
                             {
-                                // If the other box is smaller, mark it as overlapping and break
-                                isOverlapping = true;
-                                break;
-                            }
-                            else
-                            {
-                                // If the current box is smaller, skip it
-                                continue;
+                                // If there is an overlapping box, check the sizes
+                                if (rect2.area() < rect.area())
+                                {
+                                    // If the other box is smaller, mark it as overlapping and break
+                                    isOverlapping = true;
+                                    break;
+                                }
+                                else
+                                {
+                                    // If the current box is smaller, skip it
+                                    continue;
+                                }
                             }
                         }
                     }
-                }
                 }
 
                 // Draw the box only if it is not overlapping with a smaller box

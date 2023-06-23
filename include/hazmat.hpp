@@ -22,7 +22,8 @@
 
 using namespace cv;
 
-namespace vision_rescue{
+namespace vision_rescue
+{
 
     class Hazmat
     {
@@ -48,13 +49,13 @@ namespace vision_rescue{
 
         ros::Publisher img_yolo;
 
+        std::string param;
+
     private:
         int init_argc;
         char **init_argv;
         void imageCallBack(const sensor_msgs::ImageConstPtr &msg_img);
         image_transport::Subscriber img_sub;
     };
-
-
 
 }

@@ -23,7 +23,8 @@
 using namespace cv;
 using namespace std;
 
-namespace vision_rescue{
+namespace vision_rescue
+{
 
     class QR_DETECT
     {
@@ -34,7 +35,7 @@ namespace vision_rescue{
         Mat clone_mat;
         Mat gray_clone;
         Mat output_qr;
-  
+
         void run();
         void update();
         void all_clear();
@@ -47,13 +48,13 @@ namespace vision_rescue{
 
         ros::Publisher img_qr;
 
+        std::string param;
+
     private:
         int init_argc;
         char **init_argv;
         void imageCallBack(const sensor_msgs::ImageConstPtr &msg_img);
         image_transport::Subscriber img_sub;
     };
-
-
 
 }
