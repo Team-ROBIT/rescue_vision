@@ -97,7 +97,7 @@ namespace vision_rescue
         image_transport::ImageTransport img(n);
         img_yolo = n.advertise<sensor_msgs::Image>("img_yolo", 100);
         n.getParam("/hazmat/camera", param);
-        cout << param << endl;
+        ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
         img_sub = img.subscribe(param, 100, &Hazmat::imageCallBack, this); /// camera/color/image_raw
         // Add your ros communications here.
         return true;

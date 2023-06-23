@@ -63,7 +63,7 @@ namespace vision_rescue
         img_thermal = n.advertise<sensor_msgs::Image>("img_thermal", 100);
         img_thermal_gray = n.advertise<sensor_msgs::Image>("img_thermal_gray", 100);
         n.getParam("/thermal/camera", param);
-        cout << param << endl;
+        ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
         img_sub = img.subscribe("/capra_thermal_cam/image_raw", 100, &Thermal::imageCallBack, this); /// camera/color/image_raw
         // Add your ros communications here.
         return true;

@@ -331,7 +331,7 @@ namespace vision_rescue
         img_expand_binary2 = n.advertise<sensor_msgs::Image>("img_expand_binary2", 100);
         image_transport::ImageTransport img(n);
         n.getParam("/findc/camera", param);
-        cout << param << endl;
+        ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
         img_sub = img.subscribe(param, 100, &Findc::imageCallBack, this);
         // img_sub2 = img.subscribe("/capra_thermal/image_raw", 100, &Findc::imageCallBack, this);
         //  Add your ros communications here.
