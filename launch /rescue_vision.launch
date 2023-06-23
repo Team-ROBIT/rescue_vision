@@ -1,6 +1,16 @@
 <launch>
     <arg name="type" />
-    <arg name="camera" default="/camera1/usb_cam/image_raw" />
+    <arg name="camera" default="/camera2/color/image_raw" />
+    <arg name="rs1" default="021222073502" />
+    <arg name="rs2" default="948522070995" />
+
+
+  <!-- front realsense -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+    <arg name="camera" default="camera2"/>
+    <arg name="serial_no" value="$(arg rs2)"/>
+  </include>
+  
 
     <group if="$(eval type=='findc')" >
         <node pkg="rescue_vision" type="findc" name="findc" output="screen">
