@@ -45,6 +45,8 @@ namespace vision_rescue{
         ros::Publisher img_thermal;
         ros::Publisher img_thermal_gray;
 
+        std::string param;
+
     private:
         int init_argc;
         char **init_argv;

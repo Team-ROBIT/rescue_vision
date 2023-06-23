@@ -21,7 +21,7 @@
 
 #include "../include/thermal.hpp"
 
-int main(int argc,char ** argv)
+int main(int argc, char **argv)
 {
     vision_rescue::Thermal start(argc, argv);
     start.run();
@@ -34,10 +34,9 @@ namespace vision_rescue
     using namespace std;
     using namespace ros;
 
-    Thermal::Thermal(int argc, char **argv) : 
-    init_argc(argc),
-    init_argv(argv),
-    isRecv(false)
+    Thermal::Thermal(int argc, char **argv) : init_argc(argc),
+                                              init_argv(argv),
+                                              isRecv(false)
     {
         init();
     }
@@ -61,9 +60,11 @@ namespace vision_rescue
         ros::start(); // explicitly needed since our nodehandle is going out of scope.
         ros::NodeHandle n;
         image_transport::ImageTransport img(n);
-        img_thermal=n.advertise<sensor_msgs::Image>("img_thermal", 100);
-        img_thermal_gray=n.advertise<sensor_msgs::Image>("img_thermal_gray", 100);
-        img_sub = img.subscribe("/capra_thermal_cam/image_raw", 100, &Thermal::imageCallBack, this); ///camera/color/image_raw
+        img_thermal = n.advertise<sensor_msgs::Image>("img_thermal", 100);
+        img_thermal_gray = n.advertise<sensor_msgs::Image>("img_thermal_gray", 100);
+        n.getParam("/thermal/camera", param);
+        cout << param << endl;
+        img_sub = img.subscribe("/capra_thermal_cam/image_raw", 100, &Thermal::imageCallBack, this); /// camera/color/image_raw
         // Add your ros communications here.
         return true;
     }
@@ -101,10 +102,11 @@ namespace vision_rescue
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(480, 360), 0, 0, cv::INTER_CUBIC);
         output_thermal = clone_mat.clone();
-        applyColorMap(clone_mat, output_thermal, COLORMAP_JET); //색감 변환(JET, INFERNO...)
-        gray_clone=clone_mat.clone();cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
+        applyColorMap(clone_mat, output_thermal, COLORMAP_JET); // 색감 변환(JET, INFERNO...)
+        gray_clone = clone_mat.clone();
+        cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
 
         delete original;
-        isRecv=false; 
+        isRecv = false;
     }
 }

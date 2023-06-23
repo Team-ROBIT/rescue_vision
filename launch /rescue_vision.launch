@@ -19,4 +19,10 @@
             <param name="camera" type="string" value="$(arg camera)"/>
         </node>
     </group>
+
+    <group if="$(eval type=='thermal')">
+        <node pkg="rescue_vision" type="thermal" name="thermal" output="screen">
+            <param name="camera" type="string" value="$(arg camera)"/>
+        </node>    
+    </group>
 </launch>
