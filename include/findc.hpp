@@ -20,6 +20,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
+#define PI 3.141592
+
 using namespace cv;
 using namespace std;
 
@@ -100,12 +102,18 @@ namespace vision_rescue
 
         std::string param;
 
+        //test
+        ros::Publisher roi_img;
+        //test end
+
     private:
         int init_argc;
         char **init_argv;
         void imageCallBack(const sensor_msgs::ImageConstPtr &msg_img);
         image_transport::Subscriber img_sub;
         image_transport::Subscriber img_sub2;
+
+        bool pub_img_tr;
     };
 
 }

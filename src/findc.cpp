@@ -19,6 +19,7 @@
 #include <opencv2/highgui.hpp>
 
 #include "../include/findc.hpp"
+#include <cmath>
 
 int main(int argc, char **argv)
 {
@@ -35,7 +36,8 @@ namespace vision_rescue
 
     Findc::Findc(int argc, char **argv) : init_argc(argc),
                                           init_argv(argv),
-                                          isRecv(false)
+                                          isRecv(false),
+                                          pub_img_tr(false)
     {
         init();
     }
@@ -193,14 +195,12 @@ namespace vision_rescue
 
                         // circle(ok_cup_mat, Point(x,y), 5, Scalar(0 ,0, 255), 1, -1);
                         angleRadians2 = std::atan2(y - 150, x - 150) * 180.0 / CV_PI;
+                        if (abs(sumAngles2 / count2 - angleRadians2) > 180)
+                        {
+                            angleRadians2 -= 360;
+                        }
                         sumAngles2 += angleRadians2;
                         count2++;
-                        if (abs(temp_radian2 - angleRadians2) > 180)
-                        {
-                            sumAngles2 = 180 * count2;
-                            break;
-                        }
-                        temp_radian2 = angleRadians2;
                     }
                 }
             }
@@ -212,14 +212,47 @@ namespace vision_rescue
         if (count2 > 0)
         {
             averageAngle2 = -(sumAngles2 / count2);
+            if (averageAngle2 > 180)
+            {
+                averageAngle2 -= 360;
+            }
+            else if (averageAngle2 < -180)
+            {
+                averageAngle2 += 360;
+            }
             // cout << "1: " << averageAngle2 << endl;
         }
 
         //-------------------------------------------------------big----------------------------------------------------
+        // (badly handpicked coords):
+        Point cen(150+radius2*cos(averageAngle2/180.0*PI), 150+radius2*sin(-averageAngle2/180.0*PI));
+        int radius_roi =24;
+
+        // get the Rect containing the circle:
+        Rect r(cen.x - radius_roi, cen.y - radius_roi, radius_roi * 2, radius_roi * 2);
+
+        // obtain the image ROI:
+        Mat roi(expand_cup_binary, r);
+
+        // make a black mask, same size:
+        Mat mask(roi.size(), roi.type(), Scalar::all(0));
+        // with a white, filled circle in it:
+        circle(mask, Point(radius_roi, radius_roi), radius_roi, Scalar::all(255), -1);
+
+        // combine roi & mask:
+        Mat eye_cropped = roi & mask;
+        Scalar aver=mean(eye_cropped);
+        //roi_img.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, eye_cropped).toImageMsg());
+        if(aver[0]<5||200<aver[0]){
+            return;
+        }
+        
+
+        //--------------------------------------------------fist chicle check-----------------------------------------------
+
 
         range_radius_small = 10;
         range_radius_big = 120;
-
         double sumAngles = 0.0;
         int count = 0;
         int radius = 125; // 원의 반지름
@@ -240,14 +273,12 @@ namespace vision_rescue
 
                         circle(ok_cup_mat, Point(x, y), 5, Scalar(0, 0, 255), 1, -1);
                         angleRadians = std::atan2(y - 150, x - 150) * 180.0 / CV_PI;
+                        if (abs(sumAngles / count - angleRadians) > 180)
+                        {
+                            angleRadians -= 360;
+                        }
                         sumAngles += angleRadians;
                         count++;
-                        if (abs(temp_radian - angleRadians) > 180)
-                        {
-                            sumAngles = 180 * count;
-                            break;
-                        }
-                        temp_radian = angleRadians;
                     }
                 }
             }
@@ -255,11 +286,21 @@ namespace vision_rescue
                 break;
         }
 
+        //------------------------------------------------------small---------------------------------------------------
+
         if (count > 0)
         {
             double averageAngle = -(sumAngles / count);
             // double averageAngle = std::fmod(-(sumAngles / count) + 360.0, 360.0);
             // cout << averageAngle << endl;
+            if (averageAngle > 180)
+            {
+                averageAngle -= 360;
+            }
+            else if (averageAngle < -180)
+            {
+                averageAngle += 360;
+            }
 
             int averageAngle_calc = 0;
 
@@ -267,46 +308,48 @@ namespace vision_rescue
             if (averageAngle_calc > 180)
                 averageAngle_calc -= 360;
             int averageAngle_i = (averageAngle_calc + 22.5 * ((averageAngle_calc > 0) ? 1 : -1)) / 45.0;
-            // cout << averageAngle_i << endl;
+            cout << averageAngle_i << endl;
+            rectangle(clone_mat, Rect(0, 0, 200, 50), Scalar(255, 255, 255), cv::FILLED, 8);
             switch (averageAngle_i)
             {
             case -4:
-                putText(clone_mat, "left", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                putText(clone_mat, "left", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
                 direction = 1;
                 break;
             case -3:
-                putText(clone_mat, "left_down", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                putText(clone_mat, "left_down", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
                 direction = 2;
                 break;
             case -2:
-                putText(clone_mat, "down", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                putText(clone_mat, "down", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
                 direction = 3;
                 break;
             case -1:
-                putText(clone_mat, "right_down", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                putText(clone_mat, "right_down", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
                 direction = 4;
                 break;
             case 0:
-                putText(clone_mat, "right", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                putText(clone_mat, "right", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
                 direction = 5;
                 break;
             case 1:
-                putText(clone_mat, "right_up", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                putText(clone_mat, "right_up", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
                 direction = 6;
                 break;
             case 2:
-                putText(clone_mat, "up", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                putText(clone_mat, "up", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
                 direction = 7;
                 break;
             case 3:
-                putText(clone_mat, "left_up", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                putText(clone_mat, "left_up", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
                 direction = 8;
                 break;
             case 4:
-                putText(clone_mat, "left", Point(c[0], c[1]), 0.5, 1, Scalar(0, 0, 255), 2, 8);
+                putText(clone_mat, "left", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
                 direction = 9;
                 break;
             }
+            pub_img_tr = true;
         }
     }
 
@@ -364,6 +407,11 @@ namespace vision_rescue
         img_sub = img.subscribe(param, 100, &Findc::imageCallBack, this);
         // img_sub2 = img.subscribe("/capra_thermal/image_raw", 100, &Findc::imageCallBack, this);
         //  Add your ros communications here.
+
+        //test
+        roi_img=n.advertise<sensor_msgs::Image>("roi_img",1);
+        //testend
+
         return true;
     }
 
@@ -377,7 +425,11 @@ namespace vision_rescue
             if (isRecv == true)
             {
                 update();
-                img_tr.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_mat).toImageMsg());
+                if (pub_img_tr)
+                {
+                    img_tr.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_mat).toImageMsg());
+                    pub_img_tr = false;
+                }
                 img_cup.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, ok_cup_mat).toImageMsg());
                 // img_cup_expand.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, expand_cup_mat2).toImageMsg());
                 img_cup_binary.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, temp_binary).toImageMsg());
