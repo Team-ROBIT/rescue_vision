@@ -1,24 +1,24 @@
-#include <iostream>
-#include <queue>
-#include <iterator>
-#include <sstream>
+#include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
-#include <chrono>
+#include <iostream>
+#include <iterator>
 #include <opencv2/core.hpp>
 #include <opencv2/dnn.hpp>
 #include <opencv2/dnn/all_layers.hpp>
-#include <cmath>
-
-#include <ros/ros.h>
-#include <ros/network.h>
-#include <ros/package.h>
-#include <string>
-#include <std_msgs/String.h>
+#include <queue>
 #include <sstream>
 
-#include <opencv2/imgproc.hpp>
+#include <ros/network.h>
+#include <ros/package.h>
+#include <ros/ros.h>
+#include <sstream>
+#include <std_msgs/String.h>
+#include <string>
+
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "../include/victimboard.hpp"
 
@@ -29,10 +29,7 @@ constexpr float NMS_THRESHOLD = 0.4;
 constexpr int NUM_CLASSES = 15;
 
 const cv::Scalar colors[] = {
-    {0, 255, 255},
-    {255, 255, 0},
-    {0, 255, 0},
-    {255, 0, 0}};
+    {0, 255, 255}, {255, 255, 0}, {0, 255, 0}, {255, 0, 0}};
 const auto NUM_COLORS = sizeof(colors) / sizeof(colors[0]);
 
 int main(int argc, char **argv)
@@ -48,9 +45,8 @@ namespace vision_rescue
     using namespace std;
     using namespace ros;
 
-    Victimboard::Victimboard(int argc, char **argv) : init_argc(argc),
-                                                      init_argv(argv),
-                                                      isRecv(false)
+    Victimboard::Victimboard(int argc, char **argv)
+        : init_argc(argc), init_argv(argv), isRecv(false)
     {
 
         std::string packagePath = ros::package::getPath("rescue_vision");
@@ -65,7 +61,14 @@ namespace vision_rescue
 
             std::string line;
             while (std::getline(class_file, line))
+            {
                 class_names.push_back(line);
+                cout << line << endl;
+            }
+            for (int i = 0; i < 15; i++)
+            {
+                cout << class_names[i] << endl;
+            }
         }
 
         std::string modelConfiguration = dir + "yolov7_tiny_hazmat.cfg";
@@ -100,11 +103,13 @@ namespace vision_rescue
         image_transport::ImageTransport img(n);
         img_ad = n.advertise<sensor_msgs::Image>("img_ad", 100);
         img_divide = n.advertise<sensor_msgs::Image>("img_divide", 100);
-        // img_thermal_vt = n.advertise<sensor_msgs::Image>("img_thermal_vt", 100);
+        img_thermal_vt = n.advertise<sensor_msgs::Image>("img_thermal_vt", 100);
         n.getParam("/victimboard/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
-        img_sub = img.subscribe(param, 100, &Victimboard::imageCallBack, this); /// camera/color/image_raw
-        // img_sub2 = img.subscribe("/capra_thermal_cam/image_raw", 100, &Victimboard::imageCallBack, this);
+        img_sub = img.subscribe(param, 100, &Victimboard::imageCallBack,
+                                this); /// camera/color/image_raw
+        img_sub_thermal = img.subscribe("/capra_thermal_cam/image_raw", 100,
+                                        &Victimboard::imageCallBack_thermal, this);
         //  Add your ros communications here.
         return true;
     }
@@ -119,9 +124,19 @@ namespace vision_rescue
             if (isRecv == true)
             {
                 update();
-                img_ad.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, Image_to_Binary_adaptive).toImageMsg());
-                img_divide.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, Captured_Image_RGB).toImageMsg());
-                //  img_thermal_vt.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_thermal_mat).toImageMsg());
+                img_ad.publish(cv_bridge::CvImage(std_msgs::Header(),
+                                                  sensor_msgs::image_encodings::MONO8,
+                                                  Image_to_Binary_adaptive)
+                                   .toImageMsg());
+                img_divide.publish(cv_bridge::CvImage(std_msgs::Header(),
+                                                      sensor_msgs::image_encodings::BGR8,
+                                                      Captured_Image_RGB)
+                                       .toImageMsg());
+                img_thermal_vt.publish(
+                    cv_bridge::CvImage(std_msgs::Header(),
+                                       sensor_msgs::image_encodings::BGR8,
+                                       clone_thermal_mat)
+                        .toImageMsg());
             }
         }
     }
@@ -130,7 +145,9 @@ namespace vision_rescue
     {
         if (!isRecv)
         {
-            original = new cv::Mat(cv_bridge::toCvCopy(msg_img, sensor_msgs::image_encodings::BGR8)->image);
+            original = new cv::Mat(
+                cv_bridge::toCvCopy(msg_img, sensor_msgs::image_encodings::BGR8)
+                    ->image);
             if (original != NULL)
             {
                 isRecv = true;
@@ -138,27 +155,28 @@ namespace vision_rescue
         }
     }
 
-    /*
-    void Victimboard::imageCallBack_thermal(const sensor_msgs::ImageConstPtr &msg_img)
+    void Victimboard::imageCallBack_thermal(
+        const sensor_msgs::ImageConstPtr &msg_img)
     {
         if (!isRecv_thermal)
         {
-            original_thermal = new cv::Mat(cv_bridge::toCvCopy(msg_img, sensor_msgs::image_encodings::BGR8)->image);
+            original_thermal = new cv::Mat(
+                cv_bridge::toCvCopy(msg_img, sensor_msgs::image_encodings::BGR8)
+                    ->image);
             if (original_thermal != NULL)
             {
                 isRecv_thermal = true;
             }
         }
     }
-    */
 
     void Victimboard::update()
     {
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
 
-        // clone_thermal_mat = original_thermal->clone();
-        // cv::resize(clone_mat, clone_mat, cv::Size(480, 360), 0, 0, cv::INTER_CUBIC);
+        clone_thermal_mat = original_thermal->clone();
+        cv::resize(clone_thermal_mat, clone_thermal_mat, cv::Size(320, 240), 0, 0, cv::INTER_CUBIC);
 
         Image_to_Binary_OTSU = clone_mat.clone();
         GaussianBlur(Image_to_Binary_OTSU, Image_to_Binary_OTSU, Size(15, 15), 2.0);
@@ -167,23 +185,29 @@ namespace vision_rescue
         dilate(Image_to_Binary_OTSU, Image_to_Binary_OTSU, mask, Point(-1, -1), 2);
 
         Image_to_Binary_adaptive = clone_mat.clone();
-        Image_to_Binary_adaptive.convertTo(Image_to_Binary_adaptive, -1, 1.0, 70); // brightness control before threshold
-        GaussianBlur(Image_to_Binary_adaptive, Image_to_Binary_adaptive, Size(11, 11), 2.0);
+        Image_to_Binary_adaptive.convertTo(Image_to_Binary_adaptive, -1, 1.0,
+                                           70); // brightness control before threshold
+        GaussianBlur(Image_to_Binary_adaptive, Image_to_Binary_adaptive, Size(11, 11),
+                     2.0);
         cvtColor(Image_to_Binary_adaptive, Image_to_Binary_adaptive, CV_RGB2GRAY);
-        adaptiveThreshold(Image_to_Binary_adaptive, Image_to_Binary_adaptive, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 85, 2); // 85
+        adaptiveThreshold(Image_to_Binary_adaptive, Image_to_Binary_adaptive, 255,
+                          ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 85, 2); // 85
 
         Captured_Image_RGB = clone_mat.clone();
         Captured_Image_to_Binary = Image_to_Binary_OTSU;
         //----------------------------------------------------------------------------------------------------------------------------
 
-        // if (!(((image_x - 10 < 0)) || ((image_x - 10 + image_width_divided3 + 20) > 640) || ((image_y - 10) < 0) || ((image_y - 10 + image_height_divided3 + 20) > 360)))
+        // if (!(((image_x - 10 < 0)) || ((image_x - 10 + image_width_divided3 + 20) >
+        // 640) || ((image_y - 10) < 0) || ((image_y - 10 + image_height_divided3 +
+        // 20) > 360)))
         divide_box();
         set_yolo();
         detect_location();
 
         delete original;
-        // delete original_thermal;
+        delete original_thermal;
         isRecv = false;
+        isRecv_thermal = false;
     }
 
     void Victimboard::detect_location()
@@ -191,10 +215,13 @@ namespace vision_rescue
 
         for (int i = 0; i < 8; i++)
         {
-            divided_Image_data[i].Image = Captured_Image_RGB(divided_Image_data[i].position);
-            resize(divided_Image_data[i].Image, divided_Image_data[i].Image, Size(200, 200), 0, 0, CV_INTER_LINEAR);
-            orb->detect(divided_Image_data[i].Image, divided_Image_data[i].Keypoints, noArray());
-            cout << i << ") KeyPoints: " << divided_Image_data[i].Keypoints.size() << endl;
+            divided_Image_data[i].Image = clone_mat(divided_Image_data[i].position);
+            resize(divided_Image_data[i].Image, divided_Image_data[i].Image,
+                   Size(200, 200), 0, 0, CV_INTER_LINEAR);
+            orb->detect(divided_Image_data[i].Image, divided_Image_data[i].Keypoints,
+                        noArray());
+            cout << i << ") KeyPoints: " << divided_Image_data[i].Keypoints.size()
+                 << endl;
         }
 
         int count_KeyPoints[8];
@@ -202,11 +229,13 @@ namespace vision_rescue
             count_KeyPoints[i] = divided_Image_data[i].Keypoints.size();
         sort(count_KeyPoints, count_KeyPoints + 8);
 
-        if ((count_KeyPoints[0] != count_KeyPoints[1]) && (count_KeyPoints[1] == count_KeyPoints[2])) // if [0][1][1]....
+        if ((count_KeyPoints[0] != count_KeyPoints[1]) &&
+            (count_KeyPoints[1] == count_KeyPoints[2])) // if [0][1][1]....
         {
             for (int j = 0; j < 8; j++)
             {
-                if (divided_Image_data[j].Keypoints.size() == count_KeyPoints[0]) // count_KeyPoints[0] == count_KeyPoints[1]
+                if (divided_Image_data[j].Keypoints.size() ==
+                    count_KeyPoints[0]) // count_KeyPoints[0] == count_KeyPoints[1]
                     save_image_position__Rotation_Direction[0] = j;
             }
             if (save_image_position__Rotation_Direction[0] == 1)
@@ -219,15 +248,21 @@ namespace vision_rescue
                 save_image_position__Rotation_Direction[1] = 1;
         }
         // if [0][0][0].... retry
-        else if (count_KeyPoints[0] == count_KeyPoints[1])
+        else if (count_KeyPoints[0] ==
+                 count_KeyPoints[1])
         { // if the number of Keypoints is same
             int count = 0;
             for (int j = 0; j < 8; j++)
             {
-                if (divided_Image_data[j].Keypoints.size() == count_KeyPoints[0]) // count_KeyPoints[0] == count_KeyPoints[1]
+                if (divided_Image_data[j].Keypoints.size() ==
+                    count_KeyPoints[0]) // count_KeyPoints[0] == count_KeyPoints[1]
                 {
                     save_image_position__Rotation_Direction[count] = j;
                     count++;
+                    if (count == 2)
+                    {
+                        break;
+                    }
                 }
             }
         }
@@ -243,7 +278,9 @@ namespace vision_rescue
         }
 
         cout << endl
-             << "Rotation Direction Image: " << save_image_position__Rotation_Direction[0] << ", " << save_image_position__Rotation_Direction[1] << endl
+             << "Rotation Direction Image: "
+             << save_image_position__Rotation_Direction[0] << ", "
+             << save_image_position__Rotation_Direction[1] << endl
              << endl;
 
         cout << "sort_ok" << endl;
@@ -255,32 +292,40 @@ namespace vision_rescue
         for (const auto &point : hazmat_loc)
         {
             // cout << point.x << "   " << point.y << endl;
-            // cout << divided_Image_data[0].position.x << "     " << divided_Image_data[0].position.y << endl;
+            // cout << divided_Image_data[0].position.x << "     " <<
+            // divided_Image_data[0].position.y << endl;
 
-            if (check == 1 && (divided_Image_data[7].position.contains(cv::Point(point.x, point.y))))
+            if (check == 1 && (divided_Image_data[7].position.contains(
+                                  cv::Point(point.x, point.y))))
             {
                 // cout << "left up -> right down" << endl;
             }
-            else if (check == 2 && (divided_Image_data[5].position.contains(cv::Point(point.x, point.y))))
+            else if (check == 2 && (divided_Image_data[5].position.contains(
+                                       cv::Point(point.x, point.y))))
             {
                 // cout << "right up -> left down" << endl;
             }
-            else if (check == 3 && (divided_Image_data[2].position.contains(cv::Point(point.x, point.y))))
+            else if (check == 3 && (divided_Image_data[2].position.contains(
+                                       cv::Point(point.x, point.y))))
             {
                 // cout << "right up -> left down" << endl;
             }
-            else if (check == 4 && (divided_Image_data[0].position.contains(cv::Point(point.x, point.y))))
+            else if (check == 4 && (divided_Image_data[0].position.contains(
+                                       cv::Point(point.x, point.y))))
             {
                 // cout << "left up -> right down" << endl;
             }
 
             if (divided_Image_data[0].position.contains(cv::Point(point.x, point.y)))
                 check = 1;
-            else if (divided_Image_data[2].position.contains(cv::Point(point.x, point.y)))
+            else if (divided_Image_data[2].position.contains(
+                         cv::Point(point.x, point.y)))
                 check = 2;
-            else if (divided_Image_data[5].position.contains(cv::Point(point.x, point.y)))
+            else if (divided_Image_data[5].position.contains(
+                         cv::Point(point.x, point.y)))
                 check = 3;
-            else if (divided_Image_data[7].position.contains(cv::Point(point.x, point.y)))
+            else if (divided_Image_data[7].position.contains(
+                         cv::Point(point.x, point.y)))
                 check = 4;
         }
     }
@@ -288,40 +333,78 @@ namespace vision_rescue
     void Victimboard::divide_box()
     {
 
-        labeling(Captured_Image_to_Binary, image_x, image_y, image_width_divided3, image_height_divided3);
+        labeling(Captured_Image_to_Binary, image_x, image_y, image_width_divided3,
+                 image_height_divided3);
 
-        roi = Mat::zeros(Captured_Image_to_Binary.rows, Captured_Image_to_Binary.cols, CV_8UC1);
+        roi = Mat::zeros(Captured_Image_to_Binary.rows, Captured_Image_to_Binary.cols,
+                         CV_8UC1);
         adaptive_capture = Image_to_Binary_adaptive;
-        rectangle(roi, Rect(image_x - 10, image_y - 10, image_width_divided3 + 20, image_height_divided3 + 20), Scalar::all(255), -1, LINE_8, 0);
+        rectangle(roi,
+                  Rect(image_x - 10, image_y - 10, image_width_divided3 + 20,
+                       image_height_divided3 + 20),
+                  Scalar::all(255), -1, LINE_8, 0);
         bitwise_and(adaptive_capture, roi, result, noArray());
         dilate(result, result, mask, Point(-1, -1), 2);
 
-        labeling(result, image_x, image_y, image_width_divided3, image_height_divided3);
+        labeling(result, image_x, image_y, image_width_divided3,
+                 image_height_divided3);
         image_width_divided3 = image_width_divided3 / 3;
         image_height_divided3 = image_height_divided3 / 3;
 
-        rectangle(Captured_Image_RGB, Rect(image_x, image_y, image_width_divided3 * 3, image_height_divided3 * 3), cv::Scalar(0, 0, 255), 2);                                              // draw rect
-        line(Captured_Image_RGB, Point(image_x + image_width_divided3, image_y), Point(image_x + image_width_divided3, image_y + image_height_divided3 * 3), cv::Scalar(0, 0, 255), 2, 8); // divide 9
-        line(Captured_Image_RGB, Point(image_x + image_width_divided3 * 2, image_y), Point(image_x + image_width_divided3 * 2, image_y + image_height_divided3 * 3), cv::Scalar(0, 0, 255), 2, 8);
-        line(Captured_Image_RGB, Point(image_x, image_y + image_height_divided3), Point(image_x + image_width_divided3 * 3, image_y + image_height_divided3), cv::Scalar(0, 0, 255), 2, 8);
-        line(Captured_Image_RGB, Point(image_x, image_y + image_height_divided3 * 2), Point(image_x + image_width_divided3 * 3, image_y + image_height_divided3 * 2), cv::Scalar(0, 0, 255), 2, 8);
+        rectangle(Captured_Image_RGB,
+                  Rect(image_x, image_y, image_width_divided3 * 3,
+                       image_height_divided3 * 3),
+                  cv::Scalar(0, 0, 255), 2); // draw rect
+        line(Captured_Image_RGB, Point(image_x + image_width_divided3, image_y),
+             Point(image_x + image_width_divided3,
+                   image_y + image_height_divided3 * 3),
+             cv::Scalar(0, 0, 255), 2, 8); // divide 9
+        line(Captured_Image_RGB, Point(image_x + image_width_divided3 * 2, image_y),
+             Point(image_x + image_width_divided3 * 2,
+                   image_y + image_height_divided3 * 3),
+             cv::Scalar(0, 0, 255), 2, 8);
+        line(Captured_Image_RGB, Point(image_x, image_y + image_height_divided3),
+             Point(image_x + image_width_divided3 * 3,
+                   image_y + image_height_divided3),
+             cv::Scalar(0, 0, 255), 2, 8);
+        line(Captured_Image_RGB, Point(image_x, image_y + image_height_divided3 * 2),
+             Point(image_x + image_width_divided3 * 3,
+                   image_y + image_height_divided3 * 2),
+             cv::Scalar(0, 0, 255), 2, 8);
 
-        divided_Image_data[0].position = Rect(image_x, image_y, image_width_divided3, image_height_divided3);
-        divided_Image_data[1].position = Rect(image_x + image_width_divided3, image_y, image_width_divided3, image_height_divided3);
-        divided_Image_data[2].position = Rect(image_x + image_width_divided3 * 2, image_y, image_width_divided3, image_height_divided3);
-        divided_Image_data[3].position = Rect(image_x, image_y + image_height_divided3, image_width_divided3, image_height_divided3);
-        divided_Image_data[4].position = Rect(image_x + image_width_divided3 * 2, image_y + image_height_divided3, image_width_divided3, image_height_divided3);
-        divided_Image_data[5].position = Rect(image_x, image_y + image_height_divided3 * 2, image_width_divided3, image_height_divided3);
-        divided_Image_data[6].position = Rect(image_x + image_width_divided3, image_y + image_height_divided3 * 2, image_width_divided3, image_height_divided3);
-        divided_Image_data[7].position = Rect(image_x + image_width_divided3 * 2, image_y + image_height_divided3 * 2, image_width_divided3, image_height_divided3);
+        divided_Image_data[0].position =
+            Rect(image_x, image_y, image_width_divided3, image_height_divided3);
+        divided_Image_data[1].position =
+            Rect(image_x + image_width_divided3, image_y, image_width_divided3,
+                 image_height_divided3);
+        divided_Image_data[2].position =
+            Rect(image_x + image_width_divided3 * 2, image_y, image_width_divided3,
+                 image_height_divided3);
+        divided_Image_data[3].position =
+            Rect(image_x, image_y + image_height_divided3, image_width_divided3,
+                 image_height_divided3);
+        divided_Image_data[4].position =
+            Rect(image_x + image_width_divided3 * 2, image_y + image_height_divided3,
+                 image_width_divided3, image_height_divided3);
+        divided_Image_data[5].position =
+            Rect(image_x, image_y + image_height_divided3 * 2, image_width_divided3,
+                 image_height_divided3);
+        divided_Image_data[6].position =
+            Rect(image_x + image_width_divided3, image_y + image_height_divided3 * 2,
+                 image_width_divided3, image_height_divided3);
+        divided_Image_data[7].position = Rect(
+            image_x + image_width_divided3 * 2, image_y + image_height_divided3 * 2,
+            image_width_divided3, image_height_divided3);
         // 0 1 2
         // 3   4
         // 5 6 7
     }
 
-    void Victimboard::labeling(const Mat &input_img, int &_x, int &_y, int &_width, int &_height)
+    void Victimboard::labeling(const Mat &input_img, int &_x, int &_y, int &_width,
+                               int &_height)
     {
-        int num_labels = connectedComponentsWithStats(input_img, img_labeling, stats, centroids, 8, CV_32S); // labeling
+        int num_labels = connectedComponentsWithStats(
+            input_img, img_labeling, stats, centroids, 8, CV_32S); // labeling
 
         int max_area = 0;
         for (int i = 1; i < num_labels; i++)
@@ -351,7 +434,8 @@ namespace vision_rescue
         std::vector<cv::Mat> detections;
 
         auto total_start = std::chrono::steady_clock::now();
-        cv::dnn::blobFromImage(frame, blob, 0.00392, cv::Size(416, 416), cv::Scalar(), true, false, CV_32F);
+        cv::dnn::blobFromImage(frame, blob, 0.00392, cv::Size(416, 416), cv::Scalar(),
+                               true, false, CV_32F);
         net.setInput(blob);
 
         auto dnn_start = std::chrono::steady_clock::now();
@@ -428,42 +512,62 @@ namespace vision_rescue
                 // Draw the box only if it is not overlapping with a smaller box
                 if (!isOverlapping)
                 {
-                    cout << "enter_overlapping" << endl;
-                    hazmat_loc.emplace_back(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
-                    cv::rectangle(Captured_Image_RGB, cv::Point(rect.x, rect.y), cv::Point(rect.x + rect.width, rect.y + rect.height), color, 3);
-                    cout << "draw_rect" << endl;
+                    hazmat_loc.emplace_back(rect.x + (rect.width / 2),
+                                            rect.y + (rect.height / 2));
+                    cv::rectangle(Captured_Image_RGB, cv::Point(rect.x, rect.y),
+                                  cv::Point(rect.x + rect.width, rect.y + rect.height),
+                                  color, 3);
 
-                    /*
                     std::ostringstream label_ss;
+
+                    string name = class_names[c];
+
                     label_ss << class_names[c] << ": " << std::fixed << std::setprecision(2) << scores[c][idx];
+
                     auto label = label_ss.str();
                     int baseline;
-                    auto label_bg_sz = cv::getTextSize(label.c_str(), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
-                    cv::rectangle(Captured_Image_RGB, cv::Point(rect.x, rect.y - label_bg_sz.height - baseline - 10), cv::Point(rect.x + label_bg_sz.width, rect.y), color, cv::FILLED);
-                    cv::putText(Captured_Image_RGB, label.c_str(), cv::Point(rect.x, rect.y - baseline - 5), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0));
-                    */
+                    auto label_bg_sz = cv::getTextSize(
+                        label.c_str(), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
+                    cv::rectangle(
+                        Captured_Image_RGB,
+                        cv::Point(rect.x, rect.y - label_bg_sz.height - baseline - 10),
+                        cv::Point(rect.x + label_bg_sz.width, rect.y), color, cv::FILLED);
+                    cv::putText(Captured_Image_RGB, label.c_str(),
+                                cv::Point(rect.x, rect.y - baseline - 5),
+                                cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0));
                 }
             }
         }
 
-        cout << "third_for" << endl;
-
         auto total_end = std::chrono::steady_clock::now();
 
-        float inference_fps = 1000.0 / std::chrono::duration_cast<std::chrono::milliseconds>(dnn_end - dnn_start).count();
-        float total_fps = 1000.0 / std::chrono::duration_cast<std::chrono::milliseconds>(total_end - total_start).count();
+        float inference_fps =
+            1000.0 /
+            std::chrono::duration_cast<std::chrono::milliseconds>(dnn_end - dnn_start)
+                .count();
+        float total_fps =
+            1000.0 / std::chrono::duration_cast<std::chrono::milliseconds>(
+                         total_end - total_start)
+                         .count();
         std::ostringstream stats_ss;
         stats_ss << std::fixed << std::setprecision(2);
-        stats_ss << "Inference FPS: " << inference_fps << ", Total FPS: " << total_fps;
+        stats_ss << "Inference FPS: " << inference_fps
+                 << ", Total FPS: " << total_fps;
         auto stats = stats_ss.str();
 
         int baseline;
-        auto stats_bg_sz = cv::getTextSize(stats.c_str(), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
-        cv::rectangle(Captured_Image_RGB, cv::Point(0, 0), cv::Point(stats_bg_sz.width, stats_bg_sz.height + 10), cv::Scalar(0, 0, 0), cv::FILLED);
-        cv::putText(Captured_Image_RGB, stats.c_str(), cv::Point(0, stats_bg_sz.height + 5), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(255, 255, 255));
+        auto stats_bg_sz = cv::getTextSize(
+            stats.c_str(), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
+        cv::rectangle(Captured_Image_RGB, cv::Point(0, 0),
+                      cv::Point(stats_bg_sz.width, stats_bg_sz.height + 10),
+                      cv::Scalar(0, 0, 0), cv::FILLED);
+        cv::putText(Captured_Image_RGB, stats.c_str(),
+                    cv::Point(0, stats_bg_sz.height + 5),
+                    cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(255, 255, 255));
     }
 
-    bool Victimboard::isRectOverlapping(const cv::Rect &rect1, const cv::Rect &rect2)
+    bool Victimboard::isRectOverlapping(const cv::Rect &rect1,
+                                        const cv::Rect &rect2)
     {
         int x1 = std::max(rect1.x, rect2.x);
         int y1 = std::max(rect1.y, rect2.y);
@@ -477,4 +581,4 @@ namespace vision_rescue
             return false;
     }
 
-}
+} // namespace vision_rescue

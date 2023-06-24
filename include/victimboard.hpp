@@ -89,7 +89,7 @@ namespace vision_rescue
         vector<Point> points;
 
         bool isRecv;
-        // bool isRecv_thermal;
+        bool isRecv_thermal;
         bool ifCaptured = false;
         bool isOverlapping;
         bool init();
@@ -99,7 +99,7 @@ namespace vision_rescue
 
         ros::Publisher img_ad;
         ros::Publisher img_divide;
-        // ros::Publisher img_thermal_vt;
+        ros::Publisher img_thermal_vt;
 
         std::string param;
 
@@ -107,9 +107,9 @@ namespace vision_rescue
         int init_argc;
         char **init_argv;
         void imageCallBack(const sensor_msgs::ImageConstPtr &msg_img);
-        // void imageCallBack_thermal(const sensor_msgs::ImageConstPtr &msg_img);
+        void imageCallBack_thermal(const sensor_msgs::ImageConstPtr &msg_img);
         image_transport::Subscriber img_sub;
-        // image_transport::Subscriber img_sub2;
+        image_transport::Subscriber img_sub_thermal;
     };
 
 }
