@@ -126,6 +126,7 @@ namespace vision_rescue
         img_divide = n.advertise<sensor_msgs::Image>("img_divide", 100);
         img_thermal_vt = n.advertise<sensor_msgs::Image>("img_thermal_vt", 100);
         img_binary_vt = n.advertise<sensor_msgs::Image>("img_binary_vt", 100);
+        findc_pub = n.advertise<sensor_msgs::Image>("findc_vt", 100);
 
         n.getParam("/victimboard/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
@@ -212,6 +213,9 @@ namespace vision_rescue
         clone_thermal_mat = original_thermal->clone();
         cv::resize(clone_thermal_mat, clone_thermal_mat, cv::Size(400, 300), 0, 0, cv::INTER_CUBIC);
         // applyColorMap(clone_thermal_mat, clone_thermal_mat, COLORMAP_INFERNO);
+
+        delete original_thermal;
+        isRecv_thermal = false;
     }
 
     void Victimboard::update()
@@ -261,12 +265,15 @@ namespace vision_rescue
         divide_box();
         set_yolo();
         detect_location();
-        detect_C();
+
+        if (exist_c)
+        {
+            detect_C();
+            exist_c = false;
+        }
 
         delete original;
-        delete original_thermal;
         isRecv = false;
-        isRecv_thermal = false;
     }
 
     void Victimboard::detect_C()
@@ -504,7 +511,13 @@ namespace vision_rescue
                             pub_img_tr = true;
                             circle(clone_mat_c, center, radius, Scalar(0, 255, 0), 2); // 하나의 원
                             circle(clone_mat_c, center, 1, Scalar(255, 0, 0), 3);
-                            //publish in this
+                            // publish in this
+
+                            findc_pub.publish(
+                                cv_bridge::CvImage(std_msgs::Header(),
+                                                   sensor_msgs::image_encodings::MONO8,
+                                                   clone_mat_c)
+                                    .toImageMsg());
                         }
                     }
                 }
@@ -519,7 +532,6 @@ namespace vision_rescue
         {
             // cout<<degrees<<endl;
         }
-
     }
 
     void Victimboard::img_cvtcolor_gray(Mat &input, Mat &output)
@@ -815,6 +827,7 @@ namespace vision_rescue
                 // cout << "left up -> right down" << endl;
                 C_up = divided_Image_data[2].Image;
                 C_down = divided_Image_data[5].Image;
+                exist_c = true;
             }
             else if (check == 2 && (divided_Image_data[5].position.contains(
                                        cv::Point(point.x, point.y))))
@@ -822,6 +835,7 @@ namespace vision_rescue
                 // cout << "right up -> left down" << endl;
                 C_up = divided_Image_data[0].Image;
                 C_down = divided_Image_data[7].Image;
+                exist_c = true;
             }
             else if (check == 3 && (divided_Image_data[2].position.contains(
                                        cv::Point(point.x, point.y))))
@@ -829,6 +843,7 @@ namespace vision_rescue
                 // cout << "right up -> left down" << endl;
                 C_up = divided_Image_data[0].Image;
                 C_down = divided_Image_data[7].Image;
+                exist_c = true;
             }
             else if (check == 4 && (divided_Image_data[0].position.contains(
                                        cv::Point(point.x, point.y))))
@@ -836,6 +851,7 @@ namespace vision_rescue
                 // cout << "left up -> right down" << endl;
                 C_up = divided_Image_data[2].Image;
                 C_down = divided_Image_data[5].Image;
+                exist_c = true;
             }
 
             if (divided_Image_data[0].position.contains(cv::Point(point.x, point.y)))

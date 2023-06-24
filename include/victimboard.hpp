@@ -122,6 +122,7 @@ namespace vision_rescue
         bool ifCaptured = false;
         bool isOverlapping;
         bool start_motion = false;
+        bool exist_c=false;
         bool init();
         bool isRectOverlapping(const cv::Rect &rect1, const cv::Rect &rect2);
 
@@ -133,6 +134,7 @@ namespace vision_rescue
         ros::Publisher img_divide;
         ros::Publisher img_thermal_vt;
         ros::Publisher img_binary_vt;
+        ros::Publisher findc_pub;
 
         std::string param;
 
