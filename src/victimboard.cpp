@@ -145,7 +145,7 @@ namespace vision_rescue
                                    .toImageMsg());
                 img_divide.publish(cv_bridge::CvImage(std_msgs::Header(),
                                                       sensor_msgs::image_encodings::BGR8,
-                                                      Captured_Image_RGB)
+                                                      Captured_Image_RGB) // Captured_Image_RGB
                                        .toImageMsg());
             }
         }
@@ -183,7 +183,8 @@ namespace vision_rescue
     void Victimboard::set_thermal()
     {
         clone_thermal_mat = original_thermal->clone();
-        cv::resize(clone_thermal_mat, clone_thermal_mat, cv::Size(320, 240), 0, 0, cv::INTER_CUBIC);
+        cv::resize(clone_thermal_mat, clone_thermal_mat, cv::Size(400, 300), 0, 0, cv::INTER_CUBIC);
+        // applyColorMap(clone_thermal_mat, clone_thermal_mat, COLORMAP_INFERNO);
     }
 
     void Victimboard::update()
@@ -233,11 +234,17 @@ namespace vision_rescue
         divide_box();
         set_yolo();
         detect_location();
+        detect_C();
 
         delete original;
         delete original_thermal;
         isRecv = false;
         isRecv_thermal = false;
+    }
+
+    void Victimboard::detect_C()
+    {
+        // C_up이 위쪽, C_down이 아래쪽
     }
 
     void Victimboard::img_cvtcolor_gray(Mat &input, Mat &output)
@@ -298,13 +305,13 @@ namespace vision_rescue
             //        cout << "A_1  :  " << A_1<<"   B_1  :  " << B_1 << endl;
             //        cout << "degree   :   " << degree << endl;
 
-            if (degree > 0 && degree > 0.3)
+            if (degree > 0 && degree > 0.4)
             {
                 cout << endl
                      << endl
                      << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": CW" << endl;
             }
-            else if (degree < 0 && degree < -0.3)
+            else if (degree < 0 && degree < -0.4)
             {
                 cout << endl
                      << endl
@@ -502,11 +509,11 @@ namespace vision_rescue
             }
         }
 
-        if ((save_image_position__Rotation_Direction[0] == 1 || save_image_position__Rotation_Direction[1] == 6) || (save_image_position__Rotation_Direction[1] == 1 || save_image_position__Rotation_Direction[0] == 6))
+        if ((save_image_position__Rotation_Direction[0] == 1 && save_image_position__Rotation_Direction[1] == 6) || (save_image_position__Rotation_Direction[1] == 1 && save_image_position__Rotation_Direction[0] == 6))
         {
             start_motion = true;
         }
-        else if ((save_image_position__Rotation_Direction[0] == 3 || save_image_position__Rotation_Direction[1] == 4) || (save_image_position__Rotation_Direction[1] == 3 || save_image_position__Rotation_Direction[0] == 4))
+        else if ((save_image_position__Rotation_Direction[0] == 3 && save_image_position__Rotation_Direction[1] == 4) || (save_image_position__Rotation_Direction[1] == 3 && save_image_position__Rotation_Direction[0] == 4))
         {
             start_motion = true;
         }
@@ -531,21 +538,29 @@ namespace vision_rescue
                                   cv::Point(point.x, point.y))))
             {
                 // cout << "left up -> right down" << endl;
+                C_up = divided_Image_data[2].Image;
+                C_down = divided_Image_data[5].Image;
             }
             else if (check == 2 && (divided_Image_data[5].position.contains(
                                        cv::Point(point.x, point.y))))
             {
                 // cout << "right up -> left down" << endl;
+                C_up = divided_Image_data[0].Image;
+                C_down = divided_Image_data[7].Image;
             }
             else if (check == 3 && (divided_Image_data[2].position.contains(
                                        cv::Point(point.x, point.y))))
             {
                 // cout << "right up -> left down" << endl;
+                C_up = divided_Image_data[0].Image;
+                C_down = divided_Image_data[7].Image;
             }
             else if (check == 4 && (divided_Image_data[0].position.contains(
                                        cv::Point(point.x, point.y))))
             {
                 // cout << "left up -> right down" << endl;
+                C_up = divided_Image_data[2].Image;
+                C_down = divided_Image_data[5].Image;
             }
 
             if (divided_Image_data[0].position.contains(cv::Point(point.x, point.y)))
@@ -560,6 +575,10 @@ namespace vision_rescue
                          cv::Point(point.x, point.y)))
                 check = 4;
         }
+    }
+
+    void Victimboard::thermal_location(int loc)
+    {
     }
 
     void Victimboard::divide_box()

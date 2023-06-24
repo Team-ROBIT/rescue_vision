@@ -55,6 +55,8 @@ namespace vision_rescue
         Mat motion2;
         Mat movement_Find_center_img;
         Mat Divided_Image__Rotation_Direction[2];
+        Mat C_up;
+        Mat C_down;
 
         vector<Vec3f> circles;
 
@@ -100,6 +102,8 @@ namespace vision_rescue
         void CLAHE(Mat &image);
         void img_cvtcolor_gray(Mat &input, Mat &output);
         void set_thermal();
+        void thermal_location(int loc);
+        void detect_C();
 
         std::vector<std::string> class_names;
         std::vector<Point2i> hazmat_loc;
@@ -109,6 +113,9 @@ namespace vision_rescue
         cv::dnn::Net net;
 
         vector<Point> points;
+
+        Rect first_thermal;
+        Rect second_thermal;
 
         bool isRecv;
         bool isRecv_thermal;

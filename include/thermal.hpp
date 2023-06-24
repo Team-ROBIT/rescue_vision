@@ -22,9 +22,11 @@
 
 using namespace cv;
 
-namespace vision_rescue{
-    
-    class Thermal{
+namespace vision_rescue
+{
+
+    class Thermal
+    {
     public:
         Thermal(int argc, char **argv);
         ~Thermal();
@@ -33,7 +35,8 @@ namespace vision_rescue{
         Mat gray_clone;
         Mat output_thermal;
         Mat thermal_8bit;
-  
+        Mat thermal_binary;
+
         void run();
         void update();
         void all_clear();
@@ -58,8 +61,5 @@ namespace vision_rescue{
         char **init_argv;
         void imageCallBack(const sensor_msgs::ImageConstPtr &msg_img);
         image_transport::Subscriber img_sub;
-
-
-
     };
 }
