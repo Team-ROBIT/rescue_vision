@@ -2,6 +2,7 @@
 #include <string>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
+#include "robit_master_vision.hpp"
 #include <cv_bridge/cv_bridge.h>
 #include <fstream>
 #include <iomanip>
@@ -37,7 +38,6 @@ namespace vision_rescue
         Mat clone_mat;
         Mat clone_thermal_mat;
         Mat gray_clone;
-        Mat output_qr;
         Mat Image_to_Binary_OTSU;
         Mat Image_to_Binary_adaptive;
         Mat mask = getStructuringElement(MORPH_RECT, Size(3, 3), Point(1, 1));
@@ -51,6 +51,19 @@ namespace vision_rescue
         Mat result;
         Mat frame;
         Mat blob;
+        Mat motion1;
+        Mat motion2;
+        Mat movement_Find_center_img;
+        Mat Divided_Image__Rotation_Direction[2];
+
+        vector<Vec3f> circles;
+
+        Point Center;
+        Point Vec1, Vec2;
+
+        double Rotation_Direction[2] = {
+            0,
+        };
 
         typedef struct
         {
@@ -69,15 +82,23 @@ namespace vision_rescue
         int image_y;
         int image_width_divided3;
         int image_height_divided3;
+        int count__Rotation_Direction = 0;
+        int count_Movement_find_circle = 0;
+        int movement_count = 0;
+        int nROI_radius = 110;
         // connectedComponentsWithStats_center coordinates
 
-        void run();
+        void
+        run();
         void update();
         void all_clear();
         void labeling(const Mat &input_img, int &_x, int &_y, int &_width, int &_height);
         void divide_box();
         void detect_location();
         void set_yolo();
+        void img_Detect_movement(Mat &input_img);
+        void CLAHE(Mat &image);
+        void img_cvtcolor_gray(Mat &input, Mat &output);
 
         std::vector<std::string> class_names;
         std::vector<Point2i> hazmat_loc;
@@ -92,14 +113,18 @@ namespace vision_rescue
         bool isRecv_thermal;
         bool ifCaptured = false;
         bool isOverlapping;
+        bool start_motion = false;
         bool init();
         bool isRectOverlapping(const cv::Rect &rect1, const cv::Rect &rect2);
+
+        Mat region_of_interest(Mat input_img);
 
         String info;
 
         ros::Publisher img_ad;
         ros::Publisher img_divide;
         ros::Publisher img_thermal_vt;
+        ros::Publisher img_binary_vt;
 
         std::string param;
 

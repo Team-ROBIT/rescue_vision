@@ -28,7 +28,7 @@ add_executable(findc src/findc.cpp)
 add_executable(hazmat src/hazmat.cpp)
 add_executable(qr_detect src/qr_detect.cpp)
 add_executable(thermal src/thermal.cpp)
-add_executable(victimboard src/victimboard.cpp)
+add_executable(victimboard src/victimboard.cpp src/robit_master_vision.cpp)
 
 target_link_libraries(findc 
   ${catkin_LIBRARIES}

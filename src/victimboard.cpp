@@ -46,7 +46,7 @@ namespace vision_rescue
     using namespace ros;
 
     Victimboard::Victimboard(int argc, char **argv)
-        : init_argc(argc), init_argv(argv), isRecv(false)
+        : init_argc(argc), init_argv(argv), isRecv(false), isRecv_thermal(false)
     {
 
         std::string packagePath = ros::package::getPath("rescue_vision");
@@ -61,14 +61,7 @@ namespace vision_rescue
 
             std::string line;
             while (std::getline(class_file, line))
-            {
                 class_names.push_back(line);
-                cout << line << endl;
-            }
-            for (int i = 0; i < 15; i++)
-            {
-                cout << class_names[i] << endl;
-            }
         }
 
         std::string modelConfiguration = dir + "yolov7_tiny_hazmat.cfg";
@@ -101,15 +94,28 @@ namespace vision_rescue
         ros::start(); // explicitly needed since our nodehandle is going out of scope.
         ros::NodeHandle n;
         image_transport::ImageTransport img(n);
+
         img_ad = n.advertise<sensor_msgs::Image>("img_ad", 100);
         img_divide = n.advertise<sensor_msgs::Image>("img_divide", 100);
         img_thermal_vt = n.advertise<sensor_msgs::Image>("img_thermal_vt", 100);
+        img_binary_vt = n.advertise<sensor_msgs::Image>("img_binary_vt", 100);
+
         n.getParam("/victimboard/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
+
         img_sub = img.subscribe(param, 100, &Victimboard::imageCallBack,
                                 this); /// camera/color/image_raw
         img_sub_thermal = img.subscribe("/capra_thermal_cam/image_raw", 100,
                                         &Victimboard::imageCallBack_thermal, this);
+        movement_count = 0;
+        // count_Movement_find_circle = 0;
+        movement_Find_center_img.release();
+
+        count__Rotation_Direction = 0;
+        count_Movement_find_circle = 0;
+        Rotation_Direction[0] = 0;
+        Rotation_Direction[1] = 0;
+        start_motion = false;
         //  Add your ros communications here.
         return true;
     }
@@ -121,7 +127,7 @@ namespace vision_rescue
         {
             ros::spinOnce();
             loop_rate.sleep();
-            if (isRecv == true)
+            if (isRecv == true && isRecv_thermal == true)
             {
                 update();
                 img_ad.publish(cv_bridge::CvImage(std_msgs::Header(),
@@ -178,6 +184,23 @@ namespace vision_rescue
         clone_thermal_mat = original_thermal->clone();
         cv::resize(clone_thermal_mat, clone_thermal_mat, cv::Size(320, 240), 0, 0, cv::INTER_CUBIC);
 
+        if (start_motion)
+        {
+            Divided_Image__Rotation_Direction[0] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[0]].position).clone();
+            Divided_Image__Rotation_Direction[1] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[1]].position).clone();
+
+            resize(Divided_Image__Rotation_Direction[0], Divided_Image__Rotation_Direction[0], Size(300, 300), 0, 0, CV_INTER_LINEAR);
+            resize(Divided_Image__Rotation_Direction[1], Divided_Image__Rotation_Direction[1], Size(300, 300), 0, 0, CV_INTER_LINEAR);
+
+            if (movement_Find_center_img.empty())
+            {
+                img_cvtcolor_gray(Divided_Image__Rotation_Direction[count__Rotation_Direction], movement_Find_center_img);
+                movement_Find_center_img.setTo(0); //.setTo(0) -> set all pixel 0
+                // Clean Mat for points of binarization, Do not initialize while running
+            }
+            img_Detect_movement(Divided_Image__Rotation_Direction[count__Rotation_Direction]);
+        }
+
         Image_to_Binary_OTSU = clone_mat.clone();
         GaussianBlur(Image_to_Binary_OTSU, Image_to_Binary_OTSU, Size(15, 15), 2.0);
         cvtColor(Image_to_Binary_OTSU, Image_to_Binary_OTSU, CV_RGB2GRAY);
@@ -210,6 +233,202 @@ namespace vision_rescue
         isRecv_thermal = false;
     }
 
+    void Victimboard::img_cvtcolor_gray(Mat &input, Mat &output)
+    {
+        cvtColor(input, output, COLOR_BGR2GRAY);
+    }
+
+    void Victimboard::img_Detect_movement(Mat &input_img)
+    {
+
+        Mat gray_img;
+        Mat binary_img;
+
+        Point MovementBox_center;
+        bool calculate_flag = false;
+
+        CLAHE(input_img);
+        cvtColor(input_img, gray_img, COLOR_BGR2GRAY);
+
+        int nThreshold_Value = 80;
+
+        threshold(gray_img, binary_img, nThreshold_Value, 255, THRESH_BINARY_INV); // reverse binary
+        binary_img = region_of_interest(binary_img);
+
+        RobitLabeling BOX(binary_img, 0, 4);
+        BOX.doLabeling();
+        BOX.sortingRecBlobs(); // labeling -> in [0], largest area
+
+        if (BOX.m_nBlobs > 0) // draw dot(dot is MovementBox_centor) for HoughCircles
+        {
+            cv::rectangle(Divided_Image__Rotation_Direction[count__Rotation_Direction], BOX.m_recBlobs[0], Scalar(0, 0, 255), 5, 8);
+            MovementBox_center = Point(BOX.m_recBlobs[0].x + (BOX.m_recBlobs[0].width / 2), BOX.m_recBlobs[0].y + (BOX.m_recBlobs[0].height / 2));
+            circle(movement_Find_center_img, Point(MovementBox_center.x, MovementBox_center.y), 1, Scalar(255, 255, 255), -1);
+        }
+        //---============================
+        movement_count += 1;
+
+        Center = Point(movement_Find_center_img.rows / 2, movement_Find_center_img.cols / 2);
+
+        if (movement_count == 4)
+            Vec1 = Point(MovementBox_center.x - Center.x, MovementBox_center.y - Center.y);
+        else if (movement_count > 15)
+        {
+            Vec2 = Point(MovementBox_center.x - Center.x, MovementBox_center.y - Center.y);
+
+            double A = pow(Vec1.x, 2) + pow(Vec1.y, 2);
+            double B = pow(Vec2.x, 2) + pow(Vec2.y, 2);
+            double A_1 = sqrt(A);
+            double B_1 = sqrt(B);
+
+            double A_2 = (Vec1.x) * (Vec2.y) - (Vec2.x) * (Vec1.y);
+            double B_2 = A_1 * B_1;
+
+            double degree = (double)(asin(A_2 / B_2));
+            Rotation_Direction[count__Rotation_Direction] = degree;
+
+            //        cout << "A  :  " << A << "   B  :  " << B << endl;
+            //        cout << "A_1  :  " << A_1<<"   B_1  :  " << B_1 << endl;
+            //        cout << "degree   :   " << degree << endl;
+
+            if (degree > 0 && degree > 0.3)
+            {
+                cout << endl
+                     << endl
+                     << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": CW" << endl;
+            }
+            else if (degree < 0 && degree < -0.3)
+            {
+                cout << endl
+                     << endl
+                     << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": CCW" << endl;
+            }
+            else
+            {
+                cout << endl
+                     << endl
+                     << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": STOP" << endl;
+            }
+
+            count__Rotation_Direction++;
+
+            if (count__Rotation_Direction == 2)
+            {
+                start_motion = false;
+                count__Rotation_Direction = 0;
+                //            text_msg.motion1 = Write_motionData(Rotation_Direction[0]);
+                //            text_msg.motion2 = Write_motionData(Rotation_Direction[1]);
+            }
+
+            movement_Find_center_img.release(); // initalize after finishing img_Detect_movement
+            movement_count = 0;
+        }
+
+        /*
+        if (count_Movement_find_circle >= 5)
+        {
+            if (count_Movement_find_circle <= 6)
+            {
+                HoughCircles(movement_Find_center_img, circles, CV_HOUGH_GRADIENT, 2, 30, 50, 50);
+                if (!circles.empty())
+                {
+                    Center = Point(cvRound(circles[0][0]), cvRound(circles[0][1]));
+                    int radius = cvRound(circles[0][2]);
+                    circle(Divided_Image__Rotation_Direction[count__Rotation_Direction], Center, radius, Scalar(255, 0, 255), 3);
+                }
+                else
+                    Center = Point(movement_Find_center_img.rows / 2, movement_Find_center_img.cols / 2);
+            }
+            else
+                calculate_flag = true;
+        }
+
+        if (movement_count >= 12)
+        {
+            movement_count = 0;
+            if (calculate_flag == true)
+            {
+                Vec2 = Point(MovementBox_center.x - Center.x, MovementBox_center.y - Center.y);
+                double A = pow(Vec1.x, 2) + pow(Vec1.y, 2);
+                double B = pow(Vec2.x, 2) + pow(Vec2.y, 2);
+                double A_1 = sqrt(A);
+                double B_1 = sqrt(B);
+
+                double A_2 = (Vec1.x) * (Vec2.y) - (Vec2.x) * (Vec1.y);
+                double B_2 = A_1 * B_1;
+
+                double degree = (double)(asin(A_2 / B_2));
+                Rotation_Direction[count__Rotation_Direction] = degree;
+                count_Movement_find_circle = 0;
+                count__Rotation_Direction++;
+
+                if (count__Rotation_Direction == 2)
+                {
+                    start_motion = false;
+                    count__Rotation_Direction = 0;
+                    //            text_msg.motion1 = Write_motionData(Rotation_Direction[0]);
+                    //            text_msg.motion2 = Write_motionData(Rotation_Direction[1]);
+                }
+
+                else
+                {
+                    if (degree > 0)
+                    {
+                        cout << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": CW" << endl;
+                    }
+                    else if (degree < 0)
+                    {
+                        cout << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": CCW" << endl;
+                    }
+                    else
+                    {
+                        cout << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": STOP" << endl;
+                    }
+                }
+
+                movement_Find_center_img.release();
+            }
+            count_Movement_find_circle += 1;
+        }
+
+        else if (movement_count == 4)
+        {
+            if (calculate_flag == true)
+            {
+                Vec1 = Point(MovementBox_center.x - Center.x, MovementBox_center.y - Center.y);
+            }
+        }*/
+
+        img_binary_vt.publish(
+            cv_bridge::CvImage(std_msgs::Header(),
+                               sensor_msgs::image_encodings::MONO8,
+                               binary_img)
+                .toImageMsg());
+    }
+
+    Mat Victimboard::region_of_interest(Mat input_img)
+    {
+        Mat img_mask = Mat::zeros(input_img.rows, input_img.cols, CV_8UC1);
+        circle(img_mask, Point(input_img.rows / 2, input_img.cols / 2), nROI_radius, Scalar::all(255), -1);
+
+        Mat img_masked;
+        bitwise_and(input_img, img_mask, img_masked); // img_egdes && img_mask --> img_masked
+        return img_masked;
+    }
+
+    void Victimboard::CLAHE(Mat &image)
+    {
+        cvtColor(image, image, CV_RGB2Lab);
+        vector<cv::Mat> lab(3);
+        split(image, lab);
+        Ptr<cv::CLAHE> clahe = createCLAHE(3, Size(8, 8));
+        Mat dst;
+        clahe->apply(lab[0], dst);
+        dst.copyTo(lab[0]);
+        merge(lab, image);
+        cvtColor(image, image, CV_Lab2RGB);
+    }
+
     void Victimboard::detect_location()
     {
 
@@ -220,8 +439,7 @@ namespace vision_rescue
                    Size(200, 200), 0, 0, CV_INTER_LINEAR);
             orb->detect(divided_Image_data[i].Image, divided_Image_data[i].Keypoints,
                         noArray());
-            cout << i << ") KeyPoints: " << divided_Image_data[i].Keypoints.size()
-                 << endl;
+            // cout << i << ") KeyPoints: " << divided_Image_data[i].Keypoints.size()<< endl;
         }
 
         int count_KeyPoints[8];
@@ -277,13 +495,20 @@ namespace vision_rescue
             }
         }
 
-        cout << endl
-             << "Rotation Direction Image: "
-             << save_image_position__Rotation_Direction[0] << ", "
-             << save_image_position__Rotation_Direction[1] << endl
-             << endl;
+        if ((save_image_position__Rotation_Direction[0] == 1 || save_image_position__Rotation_Direction[1] == 6) || (save_image_position__Rotation_Direction[1] == 1 || save_image_position__Rotation_Direction[0] == 6))
+        {
+            start_motion = true;
+        }
+        else if ((save_image_position__Rotation_Direction[0] == 3 || save_image_position__Rotation_Direction[1] == 4) || (save_image_position__Rotation_Direction[1] == 3 || save_image_position__Rotation_Direction[0] == 4))
+        {
+            start_motion = true;
+        }
+        else
+        {
+            start_motion = false;
+        }
 
-        cout << "sort_ok" << endl;
+        // cout << endl<< "Rotation Direction Image: "<< save_image_position__Rotation_Direction[0] << ", "<< save_image_position__Rotation_Direction[1] << endl<< endl;
 
         //------------------------------------------------hazmat----------------------------------------------
 
