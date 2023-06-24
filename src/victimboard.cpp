@@ -127,8 +127,17 @@ namespace vision_rescue
         {
             ros::spinOnce();
             loop_rate.sleep();
-            if (isRecv == true && isRecv_thermal == true)
+            if (isRecv == true)
             {
+                if (isRecv_thermal == true)
+                {
+                    set_thermal();
+                    img_thermal_vt.publish(
+                        cv_bridge::CvImage(std_msgs::Header(),
+                                           sensor_msgs::image_encodings::BGR8,
+                                           clone_thermal_mat)
+                            .toImageMsg());
+                }
                 update();
                 img_ad.publish(cv_bridge::CvImage(std_msgs::Header(),
                                                   sensor_msgs::image_encodings::MONO8,
@@ -138,11 +147,6 @@ namespace vision_rescue
                                                       sensor_msgs::image_encodings::BGR8,
                                                       Captured_Image_RGB)
                                        .toImageMsg());
-                img_thermal_vt.publish(
-                    cv_bridge::CvImage(std_msgs::Header(),
-                                       sensor_msgs::image_encodings::BGR8,
-                                       clone_thermal_mat)
-                        .toImageMsg());
             }
         }
     }
@@ -176,13 +180,16 @@ namespace vision_rescue
         }
     }
 
+    void Victimboard::set_thermal()
+    {
+        clone_thermal_mat = original_thermal->clone();
+        cv::resize(clone_thermal_mat, clone_thermal_mat, cv::Size(320, 240), 0, 0, cv::INTER_CUBIC);
+    }
+
     void Victimboard::update()
     {
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
-
-        clone_thermal_mat = original_thermal->clone();
-        cv::resize(clone_thermal_mat, clone_thermal_mat, cv::Size(320, 240), 0, 0, cv::INTER_CUBIC);
 
         if (start_motion)
         {
@@ -250,7 +257,7 @@ namespace vision_rescue
         CLAHE(input_img);
         cvtColor(input_img, gray_img, COLOR_BGR2GRAY);
 
-        int nThreshold_Value = 80;
+        int nThreshold_Value = 70;
 
         threshold(gray_img, binary_img, nThreshold_Value, 255, THRESH_BINARY_INV); // reverse binary
         binary_img = region_of_interest(binary_img);

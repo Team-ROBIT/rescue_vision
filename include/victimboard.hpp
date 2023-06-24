@@ -99,6 +99,7 @@ namespace vision_rescue
         void img_Detect_movement(Mat &input_img);
         void CLAHE(Mat &image);
         void img_cvtcolor_gray(Mat &input, Mat &output);
+        void set_thermal();
 
         std::vector<std::string> class_names;
         std::vector<Point2i> hazmat_loc;
