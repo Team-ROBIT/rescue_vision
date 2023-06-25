@@ -124,9 +124,12 @@ namespace vision_rescue
 
         img_ad = n.advertise<sensor_msgs::Image>("img_ad", 100);
         img_result = n.advertise<sensor_msgs::Image>("img_result", 100);
-        img_thermal_vt = n.advertise<sensor_msgs::Image>("img_thermal_vt", 100);
+        img_result_thermal = n.advertise<sensor_msgs::Image>("img_result_thermal", 100);
         img_binary_vt = n.advertise<sensor_msgs::Image>("img_binary_vt", 100);
         findc_pub = n.advertise<sensor_msgs::Image>("findc_vt", 100);
+        down_c = n.advertise<sensor_msgs::Image>("down_c", 100);
+        up_c = n.advertise<sensor_msgs::Image>("up_c", 100);
+        img_binary_thermal = n.advertise<sensor_msgs::Image>("img_binary_thermal", 100);
 
         n.getParam("/victimboard/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
@@ -160,10 +163,10 @@ namespace vision_rescue
                 if (isRecv_thermal == true)
                 {
                     set_thermal();
-                    img_thermal_vt.publish(
+                    img_result_thermal.publish(
                         cv_bridge::CvImage(std_msgs::Header(),
                                            sensor_msgs::image_encodings::BGR8,
-                                           clone_thermal_mat)
+                                           thermal_mat)
                             .toImageMsg());
                 }
                 update();
@@ -210,9 +213,21 @@ namespace vision_rescue
 
     void Victimboard::set_thermal()
     {
-        clone_thermal_mat = original_thermal->clone();
-        cv::resize(clone_thermal_mat, clone_thermal_mat, cv::Size(400, 300), 0, 0, cv::INTER_CUBIC);
-        // applyColorMap(clone_thermal_mat, clone_thermal_mat, COLORMAP_INFERNO);
+        thermal_mat = original_thermal->clone();
+        applyColorMap(thermal_mat, thermal_mat, COLORMAP_INFERNO);
+        CLAHE(thermal_mat);
+        cv::resize(thermal_mat, thermal_mat, cv::Size(400, 300), 0, 0, cv::INTER_CUBIC);
+
+        /*Mat gray_thermal;
+        Mat binary_thermal;
+        cvtColor(clone_thermal_mat, gray_thermal, CV_RGB2GRAY);
+        threshold(gray_thermal, binary_thermal, 100, 255, THRESH_OTSU);
+        dilate(binary_thermal, binary_thermal, mask, Point(-1, -1), 5);
+        img_binary_thermal.publish(
+            cv_bridge::CvImage(std_msgs::Header(),
+                               sensor_msgs::image_encodings::MONO8,
+                               gray_thermal)
+                .toImageMsg());*/
 
         delete original_thermal;
         isRecv_thermal = false;
@@ -268,271 +283,22 @@ namespace vision_rescue
 
         if (exist_c)
         {
-            detect_C(C_up);
-            detect_C(C_down);
+
+            up_c.publish(
+                cv_bridge::CvImage(std_msgs::Header(),
+                                   sensor_msgs::image_encodings::BGR8,
+                                   C_up)
+                    .toImageMsg());
+            down_c.publish(
+                cv_bridge::CvImage(std_msgs::Header(),
+                                   sensor_msgs::image_encodings::BGR8,
+                                   C_down)
+                    .toImageMsg());
             exist_c = false;
         }
 
         delete original;
         isRecv = false;
-    }
-
-    void Victimboard::detect_C(Mat &C)
-    {
-        // C_up이 위쪽, C_down이 아래쪽
-        Mat clone_mat_c = C.clone();
-        cv::resize(clone_mat_c, clone_mat_c, cv::Size(400, 400), 0, 0, cv::INTER_CUBIC);
-        gray_clone = clone_mat_c.clone();
-        cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
-        Mat clone_binary;
-        threshold(gray_clone, clone_binary, 80, 255, cv::THRESH_BINARY);
-        Mat temp_binary;
-        threshold(gray_clone, temp_binary, 200, 255, cv::THRESH_BINARY);
-
-        int range_radius_small = 10;
-        int range_radius_big = 120;
-        HoughCircles(gray_clone, circles, HOUGH_GRADIENT, 1, 200, 200, 50, range_radius_small, range_radius_big); // 100->50
-        for (size_t i = 0; i < circles.size(); i++)
-        {
-            Vec3i c = circles[i];
-            Point center(c[0], c[1]);
-            int radius = c[2];
-
-            // circle(clone_mat, center, radius, Scalar(0, 255, 0), 2); // 하나의 원
-            // circle(clone_mat, center, 1, Scalar(255, 0, 0), 3);
-
-            // 작은 원 반지름 : 큰 원 반지름 -> 1.2 : 2.8 -> 2.8 / 1.2 = 2.3
-            if (!(((c[1] - 2.3 * radius) < 0) || ((c[1] + 2.3 * radius) > 400) || ((c[0] - 2.3 * radius) < 0) || ((c[0] + 2.3 * radius) > 400)))
-            { // 300, 400
-                // choose circle
-                Mat in_cup_mat = clone_mat_c(Range(c[1] - radius, c[1] + radius), Range(c[0] - radius, c[0] + radius));
-                cv::resize(in_cup_mat, in_cup_mat, cv::Size(300, 300), 0, 0, cv::INTER_CUBIC);
-                Mat in_cup_gray;
-                cvtColor(in_cup_mat, in_cup_gray, cv::COLOR_BGR2GRAY);
-                Mat in_cup_binary;
-                threshold(in_cup_gray, in_cup_binary, 80, 255, cv::THRESH_BINARY);
-                in_cup_binary = ~in_cup_binary;
-                bool find_ok = check_black(in_cup_binary);
-
-                if (find_ok == true)
-                {
-                    // catch_c
-                    int big_radius = 2.3 * radius;
-
-                    Mat expand_cup_mat = clone_mat_c(Range(c[1] - big_radius, c[1] + big_radius), Range(c[0] - big_radius, c[0] + big_radius));
-                    cv::resize(expand_cup_mat, expand_cup_mat, cv::Size(300, 300), 0, 0, cv::INTER_CUBIC);
-                    Mat expand_cup_gray;
-                    cvtColor(expand_cup_mat, expand_cup_gray, cv::COLOR_BGR2GRAY);
-                    Mat expand_cup_binary;
-                    threshold(expand_cup_gray, expand_cup_binary, 80, 255, cv::THRESH_BINARY);
-                    expand_cup_binary = ~expand_cup_binary;
-
-                    bool first_ring = check_black(expand_cup_binary);
-
-                    Mat ok_cup_mat = in_cup_mat.clone();
-
-                    if (first_ring == true)
-                    {
-
-                        Mat last_binary = in_cup_binary.clone();
-
-                        double sumAngles2 = 0.0;
-                        int count2 = 0;
-                        int radius2 = 125; // 원의 반지름
-                        double temp_radian2 = 0;
-                        double angleRadians2 = 0;
-
-                        for (int y = 0; y < expand_cup_binary.rows; y++)
-                        {
-                            for (int x = 0; x < expand_cup_binary.cols; x++)
-                            {
-                                if (expand_cup_binary.at<uchar>(y, x) == 0)
-                                {
-                                    // 중심 좌표로부터의 거리 계산
-                                    double distance = std::sqrt(std::pow(x - 150, 2) + std::pow(y - 150, 2));
-
-                                    if (std::abs(distance - radius2) < 1.0) // 거리가 125인 지점 판단
-                                    {
-
-                                        // circle(ok_cup_mat, Point(x,y), 5, Scalar(0 ,0, 255), 1, -1);
-                                        angleRadians2 = std::atan2(y - 150, x - 150) * 180.0 / CV_PI;
-                                        if (abs(sumAngles2 / count2 - angleRadians2) > 180)
-                                        {
-                                            angleRadians2 -= 360;
-                                        }
-                                        sumAngles2 += angleRadians2;
-                                        count2++;
-                                    }
-                                }
-                            }
-                            if (abs(temp_radian2 - angleRadians2) > 180)
-                                break;
-                        }
-
-                        double averageAngle2 = 0;
-                        if (count2 > 0)
-                        {
-                            averageAngle2 = -(sumAngles2 / count2);
-                            if (averageAngle2 > 180)
-                            {
-                                averageAngle2 -= 360;
-                            }
-                            else if (averageAngle2 < -180)
-                            {
-                                averageAngle2 += 360;
-                            }
-                            // cout << "1: " << averageAngle2 << endl;
-                        }
-
-                        //-------------------------------------------------------big----------------------------------------------------
-                        // (badly handpicked coords):
-                        Point cen(150 + radius2 * cos(averageAngle2 / 180.0 * PI), 150 + radius2 * sin(-averageAngle2 / 180.0 * PI));
-                        int radius_roi = 24;
-
-                        // get the Rect containing the circle:
-                        Rect r(cen.x - radius_roi, cen.y - radius_roi, radius_roi * 2, radius_roi * 2);
-
-                        // obtain the image ROI:
-                        Mat roi(expand_cup_binary, r);
-
-                        // make a black mask, same size:
-                        Mat mask(roi.size(), roi.type(), Scalar::all(0));
-                        // with a white, filled circle in it:
-                        circle(mask, Point(radius_roi, radius_roi), radius_roi, Scalar::all(255), -1);
-
-                        // combine roi & mask:
-                        Mat eye_cropped = roi & mask;
-                        Scalar aver = mean(eye_cropped);
-                        // roi_img.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, eye_cropped).toImageMsg());
-                        if (aver[0] < 5 || 200 < aver[0])
-                        {
-                            return;
-                        }
-
-                        //--------------------------------------------------first circle check-----------------------------------------------
-
-                        double sumAngles = 0.0;
-                        int count = 0;
-                        int radius = 125; // 원의 반지름
-                        double temp_radian = 0;
-                        double angleRadians = 0;
-
-                        for (int y = 0; y < last_binary.rows; y++)
-                        {
-                            for (int x = 0; x < last_binary.cols; x++)
-                            {
-                                if (last_binary.at<uchar>(y, x) == 0)
-                                {
-                                    // 중심 좌표로부터의 거리 계산
-                                    double distance = std::sqrt(std::pow(x - 150, 2) + std::pow(y - 150, 2));
-
-                                    if (std::abs(distance - radius) < 1.0) // 거리가 125인 지점 판단
-                                    {
-
-                                        circle(ok_cup_mat, Point(x, y), 5, Scalar(0, 0, 255), 1, -1);
-                                        angleRadians = std::atan2(y - 150, x - 150) * 180.0 / CV_PI;
-                                        if (abs(sumAngles / count - angleRadians) > 180)
-                                        {
-                                            angleRadians -= 360;
-                                        }
-                                        sumAngles += angleRadians;
-                                        count++;
-                                    }
-                                }
-                            }
-                            if (abs(temp_radian - angleRadians) > 180)
-                                break;
-                        }
-
-                        //------------------------------------------------------small---------------------------------------------------
-
-                        if (count > 0)
-                        {
-                            bool pub_img_tr;
-                            int direction;
-                            double averageAngle = -(sumAngles / count);
-                            // double averageAngle = std::fmod(-(sumAngles / count) + 360.0, 360.0);
-                            // cout << averageAngle << endl;
-                            if (averageAngle > 180)
-                            {
-                                averageAngle -= 360;
-                            }
-                            else if (averageAngle < -180)
-                            {
-                                averageAngle += 360;
-                            }
-
-                            int averageAngle_calc = 0;
-
-                            averageAngle_calc = (90 - averageAngle2) + averageAngle;
-                            if (averageAngle_calc > 180)
-                                averageAngle_calc -= 360;
-                            int averageAngle_i = (averageAngle_calc + 22.5 * ((averageAngle_calc > 0) ? 1 : -1)) / 45.0;
-                            cout << averageAngle_i << endl;
-                            rectangle(clone_mat_c, Rect(0, 0, 200, 50), Scalar(255, 255, 255), cv::FILLED, 8);
-                            switch (averageAngle_i)
-                            {
-                            case -4:
-                                putText(clone_mat_c, "left", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
-                                direction = 1;
-                                break;
-                            case -3:
-                                putText(clone_mat_c, "left_down", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
-                                direction = 2;
-                                break;
-                            case -2:
-                                putText(clone_mat_c, "down", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
-                                direction = 3;
-                                break;
-                            case -1:
-                                putText(clone_mat_c, "right_down", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
-                                direction = 4;
-                                break;
-                            case 0:
-                                putText(clone_mat_c, "right", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
-                                direction = 5;
-                                break;
-                            case 1:
-                                putText(clone_mat_c, "right_up", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
-                                direction = 6;
-                                break;
-                            case 2:
-                                putText(clone_mat_c, "up", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
-                                direction = 7;
-                                break;
-                            case 3:
-                                putText(clone_mat_c, "left_up", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
-                                direction = 8;
-                                break;
-                            case 4:
-                                putText(clone_mat_c, "left", Point(0, 30), 0.5, 1, Scalar(0, 0, 0), 2, 8);
-                                direction = 9;
-                                break;
-                            }
-                            pub_img_tr = true;
-                            circle(clone_mat_c, center, radius, Scalar(0, 255, 0), 2); // 하나의 원
-                            circle(clone_mat_c, center, 1, Scalar(255, 0, 0), 3);
-                            // publish in this
-
-                            findc_pub.publish(
-                                cv_bridge::CvImage(std_msgs::Header(),
-                                                   sensor_msgs::image_encodings::MONO8,
-                                                   clone_mat_c)
-                                    .toImageMsg());
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // range_radius_big -= 10;
-            }
-        }
-
-        if (!circles.empty())
-        {
-            // cout<<degrees<<endl;
-        }
     }
 
     void Victimboard::img_cvtcolor_gray(Mat &input, Mat &output)
@@ -744,58 +510,24 @@ namespace vision_rescue
 
         //------------------------------------------------hazmat----------------------------------------------
 
-        int check = 0;
-
         for (const auto &point : hazmat_loc)
         {
             // cout << point.x << "   " << point.y << endl;
             // cout << divided_Image_data[0].position.x << "     " <<
             // divided_Image_data[0].position.y << endl;
 
-            if (check == 1 && (divided_Image_data[7].position.contains(
-                                  cv::Point(point.x, point.y))))
+            if (divided_Image_data[0].position.contains(cv::Point(point.x, point.y)) || divided_Image_data[7].position.contains(cv::Point(point.x, point.y)))
             {
-                // cout << "left up -> right down" << endl;
                 C_up = divided_Image_data[2].Image;
                 C_down = divided_Image_data[5].Image;
                 exist_c = true;
             }
-            else if (check == 2 && (divided_Image_data[5].position.contains(
-                                       cv::Point(point.x, point.y))))
+            else if (divided_Image_data[2].position.contains(cv::Point(point.x, point.y)) || divided_Image_data[5].position.contains(cv::Point(point.x, point.y)))
             {
-                // cout << "right up -> left down" << endl;
                 C_up = divided_Image_data[0].Image;
                 C_down = divided_Image_data[7].Image;
                 exist_c = true;
             }
-            else if (check == 3 && (divided_Image_data[2].position.contains(
-                                       cv::Point(point.x, point.y))))
-            {
-                // cout << "right up -> left down" << endl;
-                C_up = divided_Image_data[0].Image;
-                C_down = divided_Image_data[7].Image;
-                exist_c = true;
-            }
-            else if (check == 4 && (divided_Image_data[0].position.contains(
-                                       cv::Point(point.x, point.y))))
-            {
-                // cout << "left up -> right down" << endl;
-                C_up = divided_Image_data[2].Image;
-                C_down = divided_Image_data[5].Image;
-                exist_c = true;
-            }
-
-            if (divided_Image_data[0].position.contains(cv::Point(point.x, point.y)))
-                check = 1;
-            else if (divided_Image_data[2].position.contains(
-                         cv::Point(point.x, point.y)))
-                check = 2;
-            else if (divided_Image_data[5].position.contains(
-                         cv::Point(point.x, point.y)))
-                check = 3;
-            else if (divided_Image_data[7].position.contains(
-                         cv::Point(point.x, point.y)))
-                check = 4;
         }
     }
 

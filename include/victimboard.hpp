@@ -36,7 +36,7 @@ namespace vision_rescue
         Mat *original;
         Mat *original_thermal;
         Mat clone_mat;
-        Mat clone_thermal_mat;
+        Mat thermal_mat;
         Mat gray_clone;
         Mat Image_to_Binary_OTSU;
         Mat Image_to_Binary_adaptive;
@@ -132,9 +132,12 @@ namespace vision_rescue
 
         ros::Publisher img_ad;
         ros::Publisher img_result;
-        ros::Publisher img_thermal_vt;
+        ros::Publisher img_result_thermal;
         ros::Publisher img_binary_vt;
         ros::Publisher findc_pub;
+        ros::Publisher up_c;
+        ros::Publisher down_c;
+        ros::Publisher img_binary_thermal;
 
         std::string param;
 
