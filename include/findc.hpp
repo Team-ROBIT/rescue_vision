@@ -93,7 +93,7 @@ namespace vision_rescue
         bool second_ring = false;
         bool first_ring = false;
 
-        ros::Publisher img_tr;
+        ros::Publisher img_result;
         ros::Publisher img_cup;
         ros::Publisher img_cup_expand;
         ros::Publisher img_cup_binary;
@@ -102,9 +102,9 @@ namespace vision_rescue
 
         std::string param;
 
-        //test
+        // test
         ros::Publisher roi_img;
-        //test end
+        // test end
 
     private:
         int init_argc;
@@ -113,7 +113,7 @@ namespace vision_rescue
         image_transport::Subscriber img_sub;
         image_transport::Subscriber img_sub2;
 
-        bool pub_img_tr;
+        bool pub_img_result;
     };
 
 }

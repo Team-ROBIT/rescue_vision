@@ -46,7 +46,7 @@ namespace vision_rescue
 
         String info;
 
-        ros::Publisher img_qr;
+        ros::Publisher img_result;
 
         std::string param;
 

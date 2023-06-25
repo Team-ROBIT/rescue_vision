@@ -123,7 +123,7 @@ namespace vision_rescue
         image_transport::ImageTransport img(n);
 
         img_ad = n.advertise<sensor_msgs::Image>("img_ad", 100);
-        img_divide = n.advertise<sensor_msgs::Image>("img_divide", 100);
+        img_result = n.advertise<sensor_msgs::Image>("img_result", 100);
         img_thermal_vt = n.advertise<sensor_msgs::Image>("img_thermal_vt", 100);
         img_binary_vt = n.advertise<sensor_msgs::Image>("img_binary_vt", 100);
         findc_pub = n.advertise<sensor_msgs::Image>("findc_vt", 100);
@@ -171,7 +171,7 @@ namespace vision_rescue
                                                   sensor_msgs::image_encodings::MONO8,
                                                   Image_to_Binary_adaptive)
                                    .toImageMsg());
-                img_divide.publish(cv_bridge::CvImage(std_msgs::Header(),
+                img_result.publish(cv_bridge::CvImage(std_msgs::Header(),
                                                       sensor_msgs::image_encodings::BGR8,
                                                       Captured_Image_RGB) // Captured_Image_RGB
                                        .toImageMsg());
@@ -268,7 +268,8 @@ namespace vision_rescue
 
         if (exist_c)
         {
-            detect_C();
+            detect_C(C_up);
+            detect_C(C_down);
             exist_c = false;
         }
 
@@ -276,11 +277,11 @@ namespace vision_rescue
         isRecv = false;
     }
 
-    void Victimboard::detect_C()
+    void Victimboard::detect_C(Mat &C)
     {
         // C_up이 위쪽, C_down이 아래쪽
-        Mat clone_mat_c = C_up.clone();
-        cv::resize(clone_mat_c, clone_mat_c, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
+        Mat clone_mat_c = C.clone();
+        cv::resize(clone_mat_c, clone_mat_c, cv::Size(400, 400), 0, 0, cv::INTER_CUBIC);
         gray_clone = clone_mat_c.clone();
         cvtColor(gray_clone, gray_clone, COLOR_BGR2GRAY);
         Mat clone_binary;
@@ -301,7 +302,7 @@ namespace vision_rescue
             // circle(clone_mat, center, 1, Scalar(255, 0, 0), 3);
 
             // 작은 원 반지름 : 큰 원 반지름 -> 1.2 : 2.8 -> 2.8 / 1.2 = 2.3
-            if (!(((c[1] - 2.3 * radius) < 0) || ((c[1] + 2.3 * radius) > 360) || ((c[0] - 2.3 * radius) < 0) || ((c[0] + 2.3 * radius) > 640)))
+            if (!(((c[1] - 2.3 * radius) < 0) || ((c[1] + 2.3 * radius) > 400) || ((c[0] - 2.3 * radius) < 0) || ((c[0] + 2.3 * radius) > 400)))
             { // 300, 400
                 // choose circle
                 Mat in_cup_mat = clone_mat_c(Range(c[1] - radius, c[1] + radius), Range(c[0] - radius, c[0] + radius));
@@ -591,24 +592,29 @@ namespace vision_rescue
             //        cout << "A  :  " << A << "   B  :  " << B << endl;
             //        cout << "A_1  :  " << A_1<<"   B_1  :  " << B_1 << endl;
             //        cout << "degree   :   " << degree << endl;
+            int p_x = divided_Image_data[save_image_position__Rotation_Direction[count__Rotation_Direction]].position.x;
+            int p_y = divided_Image_data[save_image_position__Rotation_Direction[count__Rotation_Direction]].position.y;
 
             if (degree > 0 && degree > 0.4)
             {
                 cout << endl
                      << endl
                      << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": CW" << endl;
+                putText(Captured_Image_RGB, "CW", Point(p_x, p_y), 0.5, 1, Scalar(0, 0, 0), 2, 8);
             }
             else if (degree < 0 && degree < -0.4)
             {
                 cout << endl
                      << endl
                      << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": CCW" << endl;
+                putText(Captured_Image_RGB, "CCW", Point(p_x, p_y), 0.5, 1, Scalar(0, 0, 0), 2, 8);
             }
             else
             {
                 cout << endl
                      << endl
                      << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": STOP" << endl;
+                putText(Captured_Image_RGB, "STOP", Point(p_x, p_y), 0.5, 1, Scalar(0, 0, 0), 2, 8);
             }
 
             count__Rotation_Direction++;
@@ -624,81 +630,6 @@ namespace vision_rescue
             movement_Find_center_img.release(); // initalize after finishing img_Detect_movement
             movement_count = 0;
         }
-
-        /*
-        if (count_Movement_find_circle >= 5)
-        {
-            if (count_Movement_find_circle <= 6)
-            {
-                HoughCircles(movement_Find_center_img, circles, CV_HOUGH_GRADIENT, 2, 30, 50, 50);
-                if (!circles.empty())
-                {
-                    Center = Point(cvRound(circles[0][0]), cvRound(circles[0][1]));
-                    int radius = cvRound(circles[0][2]);
-                    circle(Divided_Image__Rotation_Direction[count__Rotation_Direction], Center, radius, Scalar(255, 0, 255), 3);
-                }
-                else
-                    Center = Point(movement_Find_center_img.rows / 2, movement_Find_center_img.cols / 2);
-            }
-            else
-                calculate_flag = true;
-        }
-
-        if (movement_count >= 12)
-        {
-            movement_count = 0;
-            if (calculate_flag == true)
-            {
-                Vec2 = Point(MovementBox_center.x - Center.x, MovementBox_center.y - Center.y);
-                double A = pow(Vec1.x, 2) + pow(Vec1.y, 2);
-                double B = pow(Vec2.x, 2) + pow(Vec2.y, 2);
-                double A_1 = sqrt(A);
-                double B_1 = sqrt(B);
-
-                double A_2 = (Vec1.x) * (Vec2.y) - (Vec2.x) * (Vec1.y);
-                double B_2 = A_1 * B_1;
-
-                double degree = (double)(asin(A_2 / B_2));
-                Rotation_Direction[count__Rotation_Direction] = degree;
-                count_Movement_find_circle = 0;
-                count__Rotation_Direction++;
-
-                if (count__Rotation_Direction == 2)
-                {
-                    start_motion = false;
-                    count__Rotation_Direction = 0;
-                    //            text_msg.motion1 = Write_motionData(Rotation_Direction[0]);
-                    //            text_msg.motion2 = Write_motionData(Rotation_Direction[1]);
-                }
-
-                else
-                {
-                    if (degree > 0)
-                    {
-                        cout << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": CW" << endl;
-                    }
-                    else if (degree < 0)
-                    {
-                        cout << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": CCW" << endl;
-                    }
-                    else
-                    {
-                        cout << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": STOP" << endl;
-                    }
-                }
-
-                movement_Find_center_img.release();
-            }
-            count_Movement_find_circle += 1;
-        }
-
-        else if (movement_count == 4)
-        {
-            if (calculate_flag == true)
-            {
-                Vec1 = Point(MovementBox_center.x - Center.x, MovementBox_center.y - Center.y);
-            }
-        }*/
 
         img_binary_vt.publish(
             cv_bridge::CvImage(std_msgs::Header(),

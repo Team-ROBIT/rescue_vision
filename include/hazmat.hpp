@@ -47,7 +47,7 @@ namespace vision_rescue
 
         void set_yolo();
 
-        ros::Publisher img_yolo;
+        ros::Publisher img_result;
 
         std::string param;
 

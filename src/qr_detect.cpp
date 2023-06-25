@@ -60,7 +60,7 @@ namespace vision_rescue
         ros::start(); // explicitly needed since our nodehandle is going out of scope.
         ros::NodeHandle n;
         image_transport::ImageTransport img(n);
-        img_qr = n.advertise<sensor_msgs::Image>("img_qr", 100);
+        img_result = n.advertise<sensor_msgs::Image>("img_result", 100);
         n.getParam("/qr_detect/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
         img_sub = img.subscribe(param, 100, &QR_DETECT::imageCallBack, this); /// camera/color/image_raw
@@ -78,7 +78,7 @@ namespace vision_rescue
             if (isRecv == true)
             {
                 update();
-                img_qr.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, output_qr).toImageMsg());
+                img_result.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, output_qr).toImageMsg());
             }
         }
     }

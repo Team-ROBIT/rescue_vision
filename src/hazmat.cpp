@@ -95,7 +95,7 @@ namespace vision_rescue
         ros::start(); // explicitly needed since our nodehandle is going out of scope.
         ros::NodeHandle n;
         image_transport::ImageTransport img(n);
-        img_yolo = n.advertise<sensor_msgs::Image>("img_yolo", 100);
+        img_result = n.advertise<sensor_msgs::Image>("img_result", 100);
         n.getParam("/hazmat/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
         img_sub = img.subscribe(param, 100, &Hazmat::imageCallBack, this); /// camera/color/image_raw
@@ -113,7 +113,7 @@ namespace vision_rescue
             if (isRecv == true)
             {
                 update();
-                img_yolo.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, frame).toImageMsg());
+                img_result.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, frame).toImageMsg());
             }
         }
     }

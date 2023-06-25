@@ -103,7 +103,7 @@ namespace vision_rescue
         void img_cvtcolor_gray(Mat &input, Mat &output);
         void set_thermal();
         void thermal_location(int loc);
-        void detect_C();
+        void detect_C(Mat &C);
 
         std::vector<std::string> class_names;
         std::vector<Point2i> hazmat_loc;
@@ -122,7 +122,7 @@ namespace vision_rescue
         bool ifCaptured = false;
         bool isOverlapping;
         bool start_motion = false;
-        bool exist_c=false;
+        bool exist_c = false;
         bool init();
         bool isRectOverlapping(const cv::Rect &rect1, const cv::Rect &rect2);
 
@@ -131,7 +131,7 @@ namespace vision_rescue
         String info;
 
         ros::Publisher img_ad;
-        ros::Publisher img_divide;
+        ros::Publisher img_result;
         ros::Publisher img_thermal_vt;
         ros::Publisher img_binary_vt;
         ros::Publisher findc_pub;

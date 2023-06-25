@@ -37,7 +37,7 @@ namespace vision_rescue
     Findc::Findc(int argc, char **argv) : init_argc(argc),
                                           init_argv(argv),
                                           isRecv(false),
-                                          pub_img_tr(false)
+                                          pub_img_result(false)
     {
         init();
     }
@@ -225,8 +225,8 @@ namespace vision_rescue
 
         //-------------------------------------------------------big----------------------------------------------------
         // (badly handpicked coords):
-        Point cen(150+radius2*cos(averageAngle2/180.0*PI), 150+radius2*sin(-averageAngle2/180.0*PI));
-        int radius_roi =24;
+        Point cen(150 + radius2 * cos(averageAngle2 / 180.0 * PI), 150 + radius2 * sin(-averageAngle2 / 180.0 * PI));
+        int radius_roi = 24;
 
         // get the Rect containing the circle:
         Rect r(cen.x - radius_roi, cen.y - radius_roi, radius_roi * 2, radius_roi * 2);
@@ -241,15 +241,14 @@ namespace vision_rescue
 
         // combine roi & mask:
         Mat eye_cropped = roi & mask;
-        Scalar aver=mean(eye_cropped);
-        //roi_img.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, eye_cropped).toImageMsg());
-        if(aver[0]<5||200<aver[0]){
+        Scalar aver = mean(eye_cropped);
+        // roi_img.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::MONO8, eye_cropped).toImageMsg());
+        if (aver[0] < 5 || 200 < aver[0])
+        {
             return;
         }
-        
 
         //--------------------------------------------------first circle check-----------------------------------------------
-
 
         range_radius_small = 10;
         range_radius_big = 120;
@@ -349,7 +348,7 @@ namespace vision_rescue
                 direction = 9;
                 break;
             }
-            pub_img_tr = true;
+            pub_img_result = true;
         }
     }
 
@@ -396,7 +395,7 @@ namespace vision_rescue
         }
         ros::start(); // explicitly needed since our nodehandle is going out of scope.
         ros::NodeHandle n;
-        img_tr = n.advertise<sensor_msgs::Image>("img_tr", 100);
+        img_result = n.advertise<sensor_msgs::Image>("img_result", 100);
         img_cup = n.advertise<sensor_msgs::Image>("img_cup", 100);
         img_cup_binary = n.advertise<sensor_msgs::Image>("img_cup_binary", 100);
         img_expand_binary = n.advertise<sensor_msgs::Image>("img_expand_binary", 100);
@@ -408,9 +407,9 @@ namespace vision_rescue
         // img_sub2 = img.subscribe("/capra_thermal/image_raw", 100, &Findc::imageCallBack, this);
         //  Add your ros communications here.
 
-        //test
-        roi_img=n.advertise<sensor_msgs::Image>("roi_img",1);
-        //testend
+        // test
+        roi_img = n.advertise<sensor_msgs::Image>("roi_img", 1);
+        // testend
 
         return true;
     }
@@ -425,10 +424,10 @@ namespace vision_rescue
             if (isRecv == true)
             {
                 update();
-                if (pub_img_tr)
+                if (pub_img_result)
                 {
-                    img_tr.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_mat).toImageMsg());
-                    pub_img_tr = false;
+                    img_result.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, clone_mat).toImageMsg());
+                    pub_img_result = false;
                 }
                 img_cup.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, ok_cup_mat).toImageMsg());
                 // img_cup_expand.publish(cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::BGR8, expand_cup_mat2).toImageMsg());
