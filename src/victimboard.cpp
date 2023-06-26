@@ -122,22 +122,22 @@ namespace vision_rescue
         ros::NodeHandle n;
         image_transport::ImageTransport img(n);
 
-        img_ad = n.advertise<sensor_msgs::Image>("img_ad", 10);
-        img_result = n.advertise<sensor_msgs::Image>("img_result", 10);
-        img_result_thermal = n.advertise<sensor_msgs::Image>("img_result_thermal", 10);
-        img_binary_vt = n.advertise<sensor_msgs::Image>("img_binary_vt", 10);
-        findc_pub = n.advertise<sensor_msgs::Image>("findc_vt", 10);
-        down_c = n.advertise<sensor_msgs::Image>("down_c", 10);
-        up_c = n.advertise<sensor_msgs::Image>("up_c", 10);
-        img_binary_thermal = n.advertise<sensor_msgs::Image>("img_binary_thermal", 10);
-        bingle_data_ = n.advertise<std_msgs::Float64MultiArray>("/spin_topic", 10);
+        img_ad = n.advertise<sensor_msgs::Image>("img_ad", 1);
+        img_result = n.advertise<sensor_msgs::Image>("img_result", 1);
+        img_result_thermal = n.advertise<sensor_msgs::Image>("img_result_thermal", 1);
+        img_binary_vt = n.advertise<sensor_msgs::Image>("img_binary_vt", 1);
+        findc_pub = n.advertise<sensor_msgs::Image>("findc_vt", 1);
+        down_c = n.advertise<sensor_msgs::Image>("down_c", 1);
+        up_c = n.advertise<sensor_msgs::Image>("up_c", 1);
+        img_binary_thermal = n.advertise<sensor_msgs::Image>("img_binary_thermal", 1);
+        bingle_data_ = n.advertise<std_msgs::Float64MultiArray>("/spin_topic", 1);
 
         n.getParam("/victimboard/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
 
-        img_sub = img.subscribe(param, 10, &Victimboard::imageCallBack,
+        img_sub = img.subscribe(param, 1, &Victimboard::imageCallBack,
                                 this); /// camera/color/image_raw
-        img_sub_thermal = img.subscribe("/capra_thermal_cam/image_raw", 10,
+        img_sub_thermal = img.subscribe("/capra_thermal_cam/image_raw", 1,
                                         &Victimboard::imageCallBack_thermal, this);
         movement_count = 0;
         // count_Movement_find_circle = 0;
@@ -154,7 +154,7 @@ namespace vision_rescue
 
     void Victimboard::run()
     {
-        ros::Rate loop_rate(10);
+        ros::Rate loop_rate(33);
         while (ros::ok())
         {
             ros::spinOnce();
@@ -244,9 +244,6 @@ namespace vision_rescue
             Divided_Image__Rotation_Direction[0] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[0]].position).clone();
             Divided_Image__Rotation_Direction[1] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[1]].position).clone();
 
-            rectangle(Captured_Image_RGB, divided_Image_data[save_image_position__Rotation_Direction[0]].position, Scalar(0, 255, 0), 1, 8, 0);
-            rectangle(Captured_Image_RGB, divided_Image_data[save_image_position__Rotation_Direction[1]].position, Scalar(0, 255, 0), 1, 8, 0);
-
             resize(Divided_Image__Rotation_Direction[0], Divided_Image__Rotation_Direction[0], Size(300, 300), 0, 0, CV_INTER_LINEAR);
             resize(Divided_Image__Rotation_Direction[1], Divided_Image__Rotation_Direction[1], Size(300, 300), 0, 0, CV_INTER_LINEAR);
 
@@ -257,6 +254,9 @@ namespace vision_rescue
                 // Clean Mat for points of binarization, Do not initialize while running
             }
             img_Detect_movement(Divided_Image__Rotation_Direction[count__Rotation_Direction]);
+            motion_loc_save[0] = divided_Image_data[save_image_position__Rotation_Direction[0]].position;
+            motion_loc_save[1] = divided_Image_data[save_image_position__Rotation_Direction[1]].position;
+            motion_exit = true;
         }
 
         Image_to_Binary_OTSU = clone_mat.clone();
@@ -299,6 +299,13 @@ namespace vision_rescue
                                    C_down)
                     .toImageMsg());
             exist_c = false;
+        }
+
+        if (motion_exit)
+        {
+            rectangle(Captured_Image_RGB, motion_loc_save[0], Scalar(0, 255, 255), 2);
+            rectangle(Captured_Image_RGB, motion_loc_save[1], Scalar(0, 255, 255), 2);
+            motion_exit = false;
         }
 
         delete original;

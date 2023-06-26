@@ -126,6 +126,7 @@ namespace vision_rescue
         bool exist_c = false;
         bool init();
         bool isRectOverlapping(const cv::Rect &rect1, const cv::Rect &rect2);
+        bool motion_exit = false;
 
         Mat region_of_interest(Mat input_img);
 
@@ -149,6 +150,8 @@ namespace vision_rescue
         float bingle_save[4] = {
             0,
         };
+
+        Rect motion_loc_save[2];
 
     private:
         int init_argc;
