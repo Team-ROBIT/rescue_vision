@@ -122,21 +122,22 @@ namespace vision_rescue
         ros::NodeHandle n;
         image_transport::ImageTransport img(n);
 
-        img_ad = n.advertise<sensor_msgs::Image>("img_ad", 100);
-        img_result = n.advertise<sensor_msgs::Image>("img_result", 100);
-        img_result_thermal = n.advertise<sensor_msgs::Image>("img_result_thermal", 100);
-        img_binary_vt = n.advertise<sensor_msgs::Image>("img_binary_vt", 100);
-        findc_pub = n.advertise<sensor_msgs::Image>("findc_vt", 100);
-        down_c = n.advertise<sensor_msgs::Image>("down_c", 100);
-        up_c = n.advertise<sensor_msgs::Image>("up_c", 100);
-        img_binary_thermal = n.advertise<sensor_msgs::Image>("img_binary_thermal", 100);
+        img_ad = n.advertise<sensor_msgs::Image>("img_ad", 10);
+        img_result = n.advertise<sensor_msgs::Image>("img_result", 10);
+        img_result_thermal = n.advertise<sensor_msgs::Image>("img_result_thermal", 10);
+        img_binary_vt = n.advertise<sensor_msgs::Image>("img_binary_vt", 10);
+        findc_pub = n.advertise<sensor_msgs::Image>("findc_vt", 10);
+        down_c = n.advertise<sensor_msgs::Image>("down_c", 10);
+        up_c = n.advertise<sensor_msgs::Image>("up_c", 10);
+        img_binary_thermal = n.advertise<sensor_msgs::Image>("img_binary_thermal", 10);
+        bingle_data_ = n.advertise<std_msgs::Float64MultiArray>("/spin_topic", 10);
 
         n.getParam("/victimboard/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
 
-        img_sub = img.subscribe(param, 100, &Victimboard::imageCallBack,
+        img_sub = img.subscribe(param, 10, &Victimboard::imageCallBack,
                                 this); /// camera/color/image_raw
-        img_sub_thermal = img.subscribe("/capra_thermal_cam/image_raw", 100,
+        img_sub_thermal = img.subscribe("/capra_thermal_cam/image_raw", 10,
                                         &Victimboard::imageCallBack_thermal, this);
         movement_count = 0;
         // count_Movement_find_circle = 0;
@@ -242,6 +243,9 @@ namespace vision_rescue
         {
             Divided_Image__Rotation_Direction[0] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[0]].position).clone();
             Divided_Image__Rotation_Direction[1] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[1]].position).clone();
+
+            rectangle(Captured_Image_RGB, divided_Image_data[save_image_position__Rotation_Direction[0]].position, Scalar(0, 255, 0), 1, 8, 0);
+            rectangle(Captured_Image_RGB, divided_Image_data[save_image_position__Rotation_Direction[1]].position, Scalar(0, 255, 0), 1, 8, 0);
 
             resize(Divided_Image__Rotation_Direction[0], Divided_Image__Rotation_Direction[0], Size(300, 300), 0, 0, CV_INTER_LINEAR);
             resize(Divided_Image__Rotation_Direction[1], Divided_Image__Rotation_Direction[1], Size(300, 300), 0, 0, CV_INTER_LINEAR);
@@ -366,21 +370,48 @@ namespace vision_rescue
                 cout << endl
                      << endl
                      << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": CW" << endl;
-                putText(Captured_Image_RGB, "CW", Point(p_x, p_y), 0.5, 1, Scalar(0, 0, 0), 2, 8);
+                if (count__Rotation_Direction == 0)
+                {
+                    bingle_save[0] = save_image_position__Rotation_Direction[count__Rotation_Direction];
+                    bingle_save[1] = 1;
+                }
+                else if (count__Rotation_Direction == 1)
+                {
+                    bingle_save[2] = save_image_position__Rotation_Direction[count__Rotation_Direction];
+                    bingle_save[3] = 1;
+                }
             }
             else if (degree < 0 && degree < -0.4)
             {
                 cout << endl
                      << endl
                      << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": CCW" << endl;
-                putText(Captured_Image_RGB, "CCW", Point(p_x, p_y), 0.5, 1, Scalar(0, 0, 0), 2, 8);
+                if (count__Rotation_Direction == 0)
+                {
+                    bingle_save[0] = save_image_position__Rotation_Direction[count__Rotation_Direction];
+                    bingle_save[1] = 0;
+                }
+                else if (count__Rotation_Direction == 1)
+                {
+                    bingle_save[2] = save_image_position__Rotation_Direction[count__Rotation_Direction];
+                    bingle_save[3] = 0;
+                }
             }
             else
             {
                 cout << endl
                      << endl
                      << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": STOP" << endl;
-                putText(Captured_Image_RGB, "STOP", Point(p_x, p_y), 0.5, 1, Scalar(0, 0, 0), 2, 8);
+                if (count__Rotation_Direction == 0)
+                {
+                    bingle_save[0] = save_image_position__Rotation_Direction[count__Rotation_Direction];
+                    bingle_save[1] = 2;
+                }
+                else if (count__Rotation_Direction == 1)
+                {
+                    bingle_save[2] = save_image_position__Rotation_Direction[count__Rotation_Direction];
+                    bingle_save[3] = 2;
+                }
             }
 
             count__Rotation_Direction++;
@@ -391,6 +422,8 @@ namespace vision_rescue
                 count__Rotation_Direction = 0;
                 //            text_msg.motion1 = Write_motionData(Rotation_Direction[0]);
                 //            text_msg.motion2 = Write_motionData(Rotation_Direction[1]);
+                bingle_msgs.data = {bingle_save[0], bingle_save[1], bingle_save[2], bingle_save[3]};
+                bingle_data_.publish(bingle_msgs);
             }
 
             movement_Find_center_img.release(); // initalize after finishing img_Detect_movement

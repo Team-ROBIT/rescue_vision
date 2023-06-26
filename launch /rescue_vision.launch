@@ -1,6 +1,6 @@
 <launch>
     <arg name="type" />
-    <arg name="camera" default="/camera/color/image_raw" />
+    <arg name="camera" default="/rs_front/color/image_raw" />
     <arg name="rs1" default="021222073502" />
     <arg name="camera_type" default="rs" />
     <arg name="rs2" default="948522070995" />
@@ -8,11 +8,11 @@
 
   <!-- front realsense -->
     <group if="$(eval camera_type=='rs')" >
-        <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
-            <!-- <arg name="serial_no" value="$(arg rs2)"/> -->
+        <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+            <arg name="serial_no" value="$(arg rs2)"/>
             <arg name="enable_depth" default="false"/>
             <arg name="color_fps" default="15" />
-        </include>
+        </include> -->
 
         <group if="$(eval type=='findc')" >
             <node pkg="rescue_vision" type="findc" name="findc" output="screen">
@@ -35,7 +35,16 @@
         <group if="$(eval type=='thermal')">
             <node pkg="rescue_vision" type="thermal" name="thermal" output="screen">
                 <param name="camera" type="string" value="$(arg camera)"/>
-            </node>    
+            </node>   
+            <node name="capra_thermal_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+                <param name="video_device" value="/dev/THERMAL-CAM" />
+                <param name="image_width" value="80" />
+                <param name="image_height" value="60" />
+                <param name="pixel_format" value="uyvy" />
+                <param name="camera_frame_id" value="purethermal" />
+                <param name="io_method" value="mmap"/>
+                <param name="framerate" value="18"/>
+            </node>  
         </group>
         
         <group if="$(eval type=='victim')">
@@ -50,7 +59,7 @@
                 <param name="camera_frame_id" value="purethermal" />
                 <param name="io_method" value="mmap"/>
                 <param name="framerate" value="18"/>
-            </node>    
+            </node> 
         </group>
     </group>
 

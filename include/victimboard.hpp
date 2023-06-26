@@ -21,6 +21,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/xfeatures2d.hpp>
+#include <std_msgs/Float64MultiArray.h>
 
 using namespace cv;
 using namespace std;
@@ -139,7 +140,15 @@ namespace vision_rescue
         ros::Publisher down_c;
         ros::Publisher img_binary_thermal;
 
+        ros::Publisher bingle_data_;
+
         std::string param;
+
+        std_msgs::Float64MultiArray bingle_msgs;
+
+        float bingle_save[4] = {
+            0,
+        };
 
     private:
         int init_argc;
