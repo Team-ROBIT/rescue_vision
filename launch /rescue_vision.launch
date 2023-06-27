@@ -36,30 +36,12 @@
             <node pkg="rescue_vision" type="thermal" name="thermal" output="screen">
                 <param name="camera" type="string" value="$(arg camera)"/>
             </node>   
-            <node name="capra_thermal_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
-                <param name="video_device" value="/dev/THERMAL-CAM" />
-                <param name="image_width" value="80" />
-                <param name="image_height" value="60" />
-                <param name="pixel_format" value="uyvy" />
-                <param name="camera_frame_id" value="purethermal" />
-                <param name="io_method" value="mmap"/>
-                <param name="framerate" value="18"/>
-            </node>  
         </group>
         
         <group if="$(eval type=='victim')">
             <node pkg="rescue_vision" type="victimboard" name="victimboard" output="screen">
                 <param name="camera" type="string" value="$(arg camera)"/>
             </node>
-            <node name="capra_thermal_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
-                <param name="video_device" value="/dev/THERMAL-CAM" />
-                <param name="image_width" value="80" />
-                <param name="image_height" value="60" />
-                <param name="pixel_format" value="uyvy" />
-                <param name="camera_frame_id" value="purethermal" />
-                <param name="io_method" value="mmap"/>
-                <param name="framerate" value="18"/>
-            </node> 
         </group>
     </group>
 
@@ -92,16 +74,7 @@
         <group if="$(eval type=='victim')">
             <node pkg="rescue_vision" type="victimboard" name="victimboard" output="screen">
                 <param name="camera" type="string" value="$(arg camera)"/>
-            </node>    
-            <node name="capra_thermal_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
-                <param name="video_device" value="/dev/THERMAL-CAM" />
-                <param name="image_width" value="80" />
-                <param name="image_height" value="60" />
-                <param name="pixel_format" value="uyvy" />
-                <param name="camera_frame_id" value="purethermal" />
-                <param name="io_method" value="mmap"/>
-                <param name="framerate" value="18"/>
-            </node>   
+            </node>     
         </group>
     </group>
 </launch>
