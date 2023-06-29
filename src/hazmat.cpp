@@ -66,7 +66,7 @@ namespace vision_rescue
         }
 
         std::string modelConfiguration = dir + "yolov7_tiny_hazmat.cfg";
-        std::string modelWeights = dir + "2023_06_12.weights";
+        std::string modelWeights = dir + "2023_06_29.weights";
 
         net = cv::dnn::readNetFromDarknet(modelConfiguration, modelWeights);
         //     net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
