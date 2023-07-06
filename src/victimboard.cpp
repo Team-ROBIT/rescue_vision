@@ -145,8 +145,8 @@ namespace vision_rescue
 
         count__Rotation_Direction = 0;
         count_Movement_find_circle = 0;
-        Rotation_Direction[0] = 0;
-        Rotation_Direction[1] = 0;
+        // Rotation_Direction[0] = 0;
+        // Rotation_Direction[1] = 0;
         start_motion = false;
         //  Add your ros communications here.
         return true;
@@ -239,24 +239,49 @@ namespace vision_rescue
         clone_mat = original->clone();
         cv::resize(clone_mat, clone_mat, cv::Size(640, 360), 0, 0, cv::INTER_CUBIC);
 
-        if (start_motion)
+        int roi_size = 100;
+
+        int roi_x[2];
+        roi_x[0] = 150;
+        roi_x[1] = roi_x[0] + roi_size;
+
+        int roi_y[2];
+        roi_y[0] = 50;
+        roi_y[1] = roi_y[0] + roi_size;
+
+        if (1) // ##이 부분이 민석이가 칸을 맞추고 신호를 줬을 때 조건문이 실행되도록 설정
         {
-            Divided_Image__Rotation_Direction[0] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[0]].position).clone();
-            Divided_Image__Rotation_Direction[1] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[1]].position).clone();
+            // Divided_Image__Rotation_Direction[0] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[0]].position).clone();
+            // Divided_Image__Rotation_Direction[1] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[1]].position).clone();
 
-            resize(Divided_Image__Rotation_Direction[0], Divided_Image__Rotation_Direction[0], Size(300, 300), 0, 0, CV_INTER_LINEAR);
-            resize(Divided_Image__Rotation_Direction[1], Divided_Image__Rotation_Direction[1], Size(300, 300), 0, 0, CV_INTER_LINEAR);
-
+            // resize(Divided_Image__Rotation_Direction[0], Divided_Image__Rotation_Direction[0], Size(300, 300), 0, 0, CV_INTER_LINEAR);
+            // resize(Divided_Image__Rotation_Direction[1], Divided_Image__Rotation_Direction[1], Size(300, 300), 0, 0, CV_INTER_LINEAR);
+            /*
             if (movement_Find_center_img.empty())
             {
                 img_cvtcolor_gray(Divided_Image__Rotation_Direction[count__Rotation_Direction], movement_Find_center_img);
                 movement_Find_center_img.setTo(0); //.setTo(0) -> set all pixel 0
                 // Clean Mat for points of binarization, Do not initialize while running
+            }*/
+
+            bingle_roi = clone_mat(Range(roi_x[0], roi_y[0]), Range(roi_x[1], roi_y[1]));
+
+            resize(bingle_roi, bingle_roi,
+                   Size(200, 200), 0, 0, CV_INTER_LINEAR);
+
+            if (movement_Find_center_img.empty())
+            {
+                img_cvtcolor_gray(bingle_roi, movement_Find_center_img);
+                movement_Find_center_img.setTo(0); //.setTo(0) -> set all pixel 0
+                // Clean Mat for points of binarization, Do not initialize while running
             }
-            img_Detect_movement(Divided_Image__Rotation_Direction[count__Rotation_Direction]);
-            motion_loc_save[0] = divided_Image_data[save_image_position__Rotation_Direction[0]].position;
-            motion_loc_save[1] = divided_Image_data[save_image_position__Rotation_Direction[1]].position;
-            motion_exit = true;
+
+            img_Detect_movement(bingle_roi);
+
+            // img_Detect_movement(Divided_Image__Rotation_Direction[count__Rotation_Direction]);
+            // motion_loc_save[0] = divided_Image_data[save_image_position__Rotation_Direction[0]].position;
+            // motion_loc_save[1] = divided_Image_data[save_image_position__Rotation_Direction[1]].position;
+            // motion_exit = true;
         }
 
         Image_to_Binary_OTSU = clone_mat.clone();
@@ -281,9 +306,11 @@ namespace vision_rescue
         // if (!(((image_x - 10 < 0)) || ((image_x - 10 + image_width_divided3 + 20) >
         // 640) || ((image_y - 10) < 0) || ((image_y - 10 + image_height_divided3 +
         // 20) > 360)))
-        divide_box();
+        // divide_box();
         set_yolo();
-        detect_location();
+        // detect_location();
+
+        rectangle(Captured_Image_RGB, Point(roi_x[0], roi_y[0]), Point(roi_x[1], roi_y[1]), Scalar(0, 0, 255), 2);
 
         if (exist_c)
         {
@@ -334,13 +361,33 @@ namespace vision_rescue
         threshold(gray_img, binary_img, nThreshold_Value, 255, THRESH_BINARY_INV); // reverse binary
         binary_img = region_of_interest(binary_img);
 
+        int count_1 = 0;
+
+        for (int i = 0; i < binary_img.rows; i++)
+        {
+            for (int j = 0; j < binary_img.cols; j++)
+            {
+                if (binary_img.at<uchar>(i, j) == 1)
+                {
+                    count_1++;
+                }
+            }
+        }
+
+        // 픽셀 값이 1인 픽셀이 픽셀 값이 0인 픽셀보다 많은 경우 이미지를 반전시킵니다.
+        if (count_1 > (binary_img.rows * binary_img.cols) / 2)
+        {
+            binary_img = ~binary_img;
+        }
+
         RobitLabeling BOX(binary_img, 0, 4);
         BOX.doLabeling();
         BOX.sortingRecBlobs(); // labeling -> in [0], largest area
 
         if (BOX.m_nBlobs > 0) // draw dot(dot is MovementBox_centor) for HoughCircles
         {
-            cv::rectangle(Divided_Image__Rotation_Direction[count__Rotation_Direction], BOX.m_recBlobs[0], Scalar(0, 0, 255), 5, 8);
+            // cv::rectangle(Divided_Image__Rotation_Direction[count__Rotation_Direction], BOX.m_recBlobs[0], Scalar(0, 0, 255), 5, 8);
+            cv::rectangle(input_img, BOX.m_recBlobs[0], Scalar(0, 0, 255), 5, 8);
             MovementBox_center = Point(BOX.m_recBlobs[0].x + (BOX.m_recBlobs[0].width / 2), BOX.m_recBlobs[0].y + (BOX.m_recBlobs[0].height / 2));
             circle(movement_Find_center_img, Point(MovementBox_center.x, MovementBox_center.y), 1, Scalar(255, 255, 255), -1);
         }
@@ -364,78 +411,40 @@ namespace vision_rescue
             double B_2 = A_1 * B_1;
 
             double degree = (double)(asin(A_2 / B_2));
-            Rotation_Direction[count__Rotation_Direction] = degree;
+            Rotation_Direction = degree;
 
-            //        cout << "A  :  " << A << "   B  :  " << B << endl;
-            //        cout << "A_1  :  " << A_1<<"   B_1  :  " << B_1 << endl;
-            //        cout << "degree   :   " << degree << endl;
-            int p_x = divided_Image_data[save_image_position__Rotation_Direction[count__Rotation_Direction]].position.x;
-            int p_y = divided_Image_data[save_image_position__Rotation_Direction[count__Rotation_Direction]].position.y;
+            // int p_x = divided_Image_data[save_image_position__Rotation_Direction[count__Rotation_Direction]].position.x;
+            // int p_y = divided_Image_data[save_image_position__Rotation_Direction[count__Rotation_Direction]].position.y;
 
             if (degree > 0 && degree > 0.4)
             {
                 cout << endl
                      << endl
-                     << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": CW" << endl;
-                if (count__Rotation_Direction == 0)
-                {
-                    bingle_save[0] = save_image_position__Rotation_Direction[count__Rotation_Direction];
-                    bingle_save[1] = 1;
-                }
-                else if (count__Rotation_Direction == 1)
-                {
-                    bingle_save[2] = save_image_position__Rotation_Direction[count__Rotation_Direction];
-                    bingle_save[3] = 1;
-                }
+                     << save_image_position__Rotation_Direction << ": " << degree << ": CW" << endl;
+                bingle_save = 1;
             }
             else if (degree < 0 && degree < -0.4)
             {
                 cout << endl
                      << endl
-                     << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": CCW" << endl;
-                if (count__Rotation_Direction == 0)
-                {
-                    bingle_save[0] = save_image_position__Rotation_Direction[count__Rotation_Direction];
-                    bingle_save[1] = 0;
-                }
-                else if (count__Rotation_Direction == 1)
-                {
-                    bingle_save[2] = save_image_position__Rotation_Direction[count__Rotation_Direction];
-                    bingle_save[3] = 0;
-                }
+                     << save_image_position__Rotation_Direction << ": " << degree << ": CCW" << endl;
+                bingle_save = 2;
             }
             else
             {
                 cout << endl
                      << endl
-                     << save_image_position__Rotation_Direction[count__Rotation_Direction] << ": " << degree << ": STOP" << endl;
-                if (count__Rotation_Direction == 0)
-                {
-                    bingle_save[0] = save_image_position__Rotation_Direction[count__Rotation_Direction];
-                    bingle_save[1] = 2;
-                }
-                else if (count__Rotation_Direction == 1)
-                {
-                    bingle_save[2] = save_image_position__Rotation_Direction[count__Rotation_Direction];
-                    bingle_save[3] = 2;
-                }
+                     << save_image_position__Rotation_Direction << ": " << degree << ": STOP" << endl;
+                bingle_save = 0;
             }
-
-            count__Rotation_Direction++;
-
-            if (count__Rotation_Direction == 2)
-            {
-                start_motion = false;
-                count__Rotation_Direction = 0;
-                //            text_msg.motion1 = Write_motionData(Rotation_Direction[0]);
-                //            text_msg.motion2 = Write_motionData(Rotation_Direction[1]);
-                bingle_msgs.data = {bingle_save[0], bingle_save[1], bingle_save[2], bingle_save[3]};
-                bingle_data_.publish(bingle_msgs);
-            }
-
-            movement_Find_center_img.release(); // initalize after finishing img_Detect_movement
-            movement_count = 0;
+            //            text_msg.motion1 = Write_motionData(Rotation_Direction[0]);
+            //            text_msg.motion2 = Write_motionData(Rotation_Direction[1]);
+            bingle_msgs.data = bingle_save;    // ##bingle_save만 보냄: 메시지형 수정??
+            bingle_data_.publish(bingle_msgs); // ##bingle_save값에 따라 UI에 CW, CCW, STOP 수정 부탁
         }
+
+        movement_Find_center_img.release(); // initalize after finishing img_Detect_movement
+        movement_count = 0;
 
         img_binary_vt.publish(
             cv_bridge::CvImage(std_msgs::Header(),
@@ -773,22 +782,24 @@ namespace vision_rescue
                     int baseline;
                     auto label_bg_sz = cv::getTextSize(
                         label.c_str(), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
-                     if((rect.y - label_bg_sz.height - baseline - 10)>=0){
-                    cv::rectangle(
-                        Captured_Image_RGB,
-                        cv::Point(rect.x, rect.y - label_bg_sz.height - baseline - 10),
-                        cv::Point(rect.x + label_bg_sz.width, rect.y), color, cv::FILLED);
-                    cv::putText(Captured_Image_RGB, label.c_str(),
-                                cv::Point(rect.x, rect.y - baseline - 5),
-                                cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0));
-                    }
-                    else{
+                    if ((rect.y - label_bg_sz.height - baseline - 10) >= 0)
+                    {
                         cv::rectangle(
                             Captured_Image_RGB,
-                            cv::Point(rect.x, rect.y+rect.height),//rect.y+rect.height
-                            cv::Point(rect.x + label_bg_sz.width, rect.y+rect.height+label_bg_sz.height+baseline+10), color, cv::FILLED);
+                            cv::Point(rect.x, rect.y - label_bg_sz.height - baseline - 10),
+                            cv::Point(rect.x + label_bg_sz.width, rect.y), color, cv::FILLED);
                         cv::putText(Captured_Image_RGB, label.c_str(),
-                                    cv::Point(rect.x, rect.y+rect.height + baseline + 5),
+                                    cv::Point(rect.x, rect.y - baseline - 5),
+                                    cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0));
+                    }
+                    else
+                    {
+                        cv::rectangle(
+                            Captured_Image_RGB,
+                            cv::Point(rect.x, rect.y + rect.height), // rect.y+rect.height
+                            cv::Point(rect.x + label_bg_sz.width, rect.y + rect.height + label_bg_sz.height + baseline + 10), color, cv::FILLED);
+                        cv::putText(Captured_Image_RGB, label.c_str(),
+                                    cv::Point(rect.x, rect.y + rect.height + baseline + 5),
                                     cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0));
                     }
                 }

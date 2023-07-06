@@ -22,6 +22,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/xfeatures2d.hpp>
 #include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/Int32.h>
 
 using namespace cv;
 using namespace std;
@@ -58,15 +59,19 @@ namespace vision_rescue
         Mat Divided_Image__Rotation_Direction[2];
         Mat C_up;
         Mat C_down;
+        Mat bingle_roi;
 
-        vector<Vec3f> circles;
+        vector<Vec3f>
+            circles;
 
         Point Center;
         Point Vec1, Vec2;
 
-        double Rotation_Direction[2] = {
+        /*double Rotation_Direction[2] = {
             0,
-        };
+        };*/
+
+        double Rotation_Direction = 0;
 
         typedef struct
         {
@@ -145,11 +150,13 @@ namespace vision_rescue
 
         std::string param;
 
-        std_msgs::Float64MultiArray bingle_msgs;
+        std_msgs::Int32 bingle_msgs;
 
-        float bingle_save[4] = {
+        /*float bingle_save[4] = {
             0,
-        };
+        };*/
+
+        int bingle_save;
 
         Rect motion_loc_save[2];
 
