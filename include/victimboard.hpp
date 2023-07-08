@@ -23,6 +23,7 @@
 #include <opencv2/xfeatures2d.hpp>
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Int32.h>
+#include <std_msgs/Bool.h>
 
 using namespace cv;
 using namespace std;
@@ -133,6 +134,8 @@ namespace vision_rescue
         bool isRectOverlapping(const cv::Rect &rect1, const cv::Rect &rect2);
         bool motion_exit = false;
 
+        bool movingd_trigger = false;
+
         Mat region_of_interest(Mat input_img);
 
         String info;
@@ -145,6 +148,9 @@ namespace vision_rescue
         ros::Publisher up_c;
         ros::Publisher down_c;
         ros::Publisher img_binary_thermal;
+        ros::Publisher class_pub;
+
+        ros::Subscriber movingd;
 
         ros::Publisher bingle_data_;
 
@@ -165,6 +171,7 @@ namespace vision_rescue
         char **init_argv;
         void imageCallBack(const sensor_msgs::ImageConstPtr &msg_img);
         void imageCallBack_thermal(const sensor_msgs::ImageConstPtr &msg_img);
+        void movingd_Callback(const std_msgs::BoolPtr &m);
         image_transport::Subscriber img_sub;
         image_transport::Subscriber img_sub_thermal;
     };

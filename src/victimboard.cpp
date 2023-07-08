@@ -132,6 +132,10 @@ namespace vision_rescue
         img_binary_thermal = n.advertise<sensor_msgs::Image>("img_binary_thermal", 1);
         bingle_data_ = n.advertise<std_msgs::Float64MultiArray>("/spin_topic", 1);
 
+        class_pub = n.advertise<std_msgs::Int32>("/num_of_hazmat", 10);
+
+        // movingd = n.subscribe<std_msgs::Bool>("/movingd_true_false", 1, movingd_Callback, this);
+
         n.getParam("/victimboard/camera", param);
         ROS_INFO("Starting Rescue Vision With Camera : %s", param.c_str());
 
@@ -249,7 +253,7 @@ namespace vision_rescue
         roi_y[0] = 50;
         roi_y[1] = roi_y[0] + roi_size;
 
-        if (1) // ##이 부분이 민석이가 칸을 맞추고 신호를 줬을 때 조건문이 실행되도록 설정
+        if (movingd_trigger) // ##이 부분이 민석이가 칸을 맞추고 신호를 줬을 때 조건문이 실행되도록 설정
         {
             // Divided_Image__Rotation_Direction[0] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[0]].position).clone();
             // Divided_Image__Rotation_Direction[1] = clone_mat(divided_Image_data[save_image_position__Rotation_Direction[1]].position).clone();
@@ -770,13 +774,17 @@ namespace vision_rescue
                                             rect.y + (rect.height / 2));
                     cv::rectangle(Captured_Image_RGB, cv::Point(rect.x, rect.y),
                                   cv::Point(rect.x + rect.width, rect.y + rect.height),
-                                  color, 3);
+                                  Scalar(255, 255, 255), 3);
 
                     std::ostringstream label_ss;
 
                     string name = class_names[c];
 
                     label_ss << class_names[c] << ": " << std::fixed << std::setprecision(2) << scores[c][idx];
+
+                    std_msgs::Int32 msgs_class;
+                    msgs_class.data = c;
+                    class_pub.publish(msgs_class);
 
                     auto label = label_ss.str();
                     int baseline;
@@ -787,7 +795,7 @@ namespace vision_rescue
                         cv::rectangle(
                             Captured_Image_RGB,
                             cv::Point(rect.x, rect.y - label_bg_sz.height - baseline - 10),
-                            cv::Point(rect.x + label_bg_sz.width, rect.y), color, cv::FILLED);
+                            cv::Point(rect.x + label_bg_sz.width, rect.y), Scalar(255, 255, 255), cv::FILLED);
                         cv::putText(Captured_Image_RGB, label.c_str(),
                                     cv::Point(rect.x, rect.y - baseline - 5),
                                     cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0));
@@ -820,6 +828,18 @@ namespace vision_rescue
             return true;
         else
             return false;
+    }
+
+    void Victimboard::movingd_Callback(const std_msgs::BoolPtr &m)
+    {
+        if (m->data == true)
+        {
+            movingd_trigger = true;
+        }
+        else if (m->data == false)
+        {
+            movingd_trigger = false;
+        }
     }
 
 } // namespace vision_rescue
